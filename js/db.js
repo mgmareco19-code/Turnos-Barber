@@ -64,6 +64,17 @@ const DB = (() => {
     async actualizarTurno(id, cambios) {
       const { error } = await sb.from("turnos").update(cambios).eq("id", id); fail(error);
     },
+    async guardarBarbero({ id, ...datos }) {
+      const { error } = id
+        ? await sb.from("barberos").update(datos).eq("id", id)
+        : await sb.from("barberos").insert(datos);
+      fail(error);
+    },
+    async eliminarBarbero(id) {
+      const { error } = await sb.from("barberos").delete().eq("id", id);
+      if (error?.code === "23503") throw new Error("Tiene turnos registrados: desactivalo en lugar de eliminarlo.");
+      fail(error);
+    },
   };
 
   /* ---------------- DEMO (localStorage) ---------------- */
@@ -155,6 +166,17 @@ const DB = (() => {
       if (cambios.estado && cambios.estado !== "cancelado" && t.estado === "cancelado" && !libre(t, t.id))
         throw new Error("No se puede reactivar: el horario ya fue tomado.");
       Object.assign(t, cambios); save(s);
+    },
+    async guardarBarbero({ id, ...datos }) {
+      const s = st();
+      if (id) Object.assign(s.barberos.find((b) => b.id === id), datos);
+      else s.barberos.push({ activo: true, ...datos, id: Math.max(0, ...s.barberos.map((b) => b.id)) + 1 });
+      save(s); return wait();
+    },
+    async eliminarBarbero(id) {
+      const s = st();
+      if (s.turnos.some((t) => t.barbero_id === id)) throw new Error("Tiene turnos registrados: desactivalo en lugar de eliminarlo.");
+      s.barberos = s.barberos.filter((b) => b.id !== id); save(s); return wait();
     },
     reset() { localStorage.removeItem(KEY); mem = null; },
   };

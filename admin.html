@@ -39,6 +39,7 @@
         <a href="./" class="logo" title="Ver página de reservas"><i data-lucide="scissors"></i><span>BLACK <b>LABEL</b></span></a>
         <div class="topbar__right">
           <span class="badge" id="modoBadge"></span>
+          <button class="btn btn--ghost btn--sm" id="btnBarberos"><i data-lucide="users"></i><span class="hide-sm">Barberos</span> <span class="count" id="cantBarberos"></span></button>
           <button class="btn btn--ghost btn--sm" id="btnSalir"><i data-lucide="log-out"></i><span class="hide-sm">Salir</span></button>
         </div>
       </div>
@@ -79,6 +80,32 @@
       <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
     </div>
     <div id="detCuerpo"></div>
+  </dialog>
+
+  <!-- BARBEROS -->
+  <dialog class="modal modal--wide" id="modalBarberos">
+    <div class="modal__head">
+      <div>
+        <h2>Barberos del local</h2>
+        <p class="note" id="barberosResumen" style="margin:0"></p>
+      </div>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <ul class="staff" id="listaStaff"></ul>
+    <form id="formBarbero" class="form staff__form" novalidate>
+      <h3 id="formBarberoTitulo">Agregar barbero</h3>
+      <input type="hidden" name="id">
+      <div class="grid-2">
+        <label class="field"><span>Nombre</span><input name="nombre" required minlength="2" maxlength="40" autocomplete="off" placeholder="Ej: Diego"></label>
+        <label class="field"><span>Especialidad <small>(opcional)</small></span><input name="especialidad" maxlength="60" autocomplete="off" placeholder="Ej: Fades y diseños"></label>
+      </div>
+      <label class="field"><span>Foto <small>(URL opcional)</small></span><input name="foto" type="url" placeholder="https://…"></label>
+      <p class="form__error" id="barberoError" role="alert" hidden></p>
+      <div class="staff__formbtns">
+        <button class="btn btn--gold btn--sm" type="submit" id="btnGuardarBarbero"><i data-lucide="user-plus"></i>Agregar</button>
+        <button class="btn btn--text btn--sm" type="button" id="btnCancelarEdicion" hidden>Cancelar edición</button>
+      </div>
+    </form>
   </dialog>
 
   <!-- NUEVO TURNO -->

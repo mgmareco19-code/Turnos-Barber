@@ -33,10 +33,9 @@
     $("#modoBadge").textContent = DB.modo === "demo" ? "Modo demo" : "En línea";
     $("#modoBadge").className = "badge " + (DB.modo === "demo" ? "badge--warn" : "badge--ok");
     try {
-      [st.servicios, st.barberos] = await Promise.all([DB.servicios(true), DB.barberos()]);
+      [st.servicios, st.barberos] = await Promise.all([DB.servicios(true), DB.barberos(true)]);
     } catch (e) { U.toast(e.message, "error"); }
-    $("#filtroBarbero").innerHTML = '<option value="">Todos los barberos</option>' +
-      st.barberos.map((b) => `<option value="${b.id}">${U.esc(b.nombre)}</option>`).join("");
+    renderFiltro();
     await cargar();
     clearInterval(timer);
     timer = setInterval(() => { if (!document.hidden && !$("dialog[open]")) cargar(true); }, 60000);
@@ -64,6 +63,14 @@
       render();
     } catch (e) { U.toast(e.message, "error"); }
     finally { $("#agenda").classList.remove("is-loading"); }
+  }
+  const activos = () => st.barberos.filter((b) => b.activo);
+  function renderFiltro() {
+    if (st.barbero && !st.barberos.some((b) => b.id === Number(st.barbero))) st.barbero = "";
+    $("#filtroBarbero").innerHTML = '<option value="">Todos los barberos</option>' +
+      st.barberos.map((b) => `<option value="${b.id}">${U.esc(b.nombre)}${b.activo ? "" : " (inactivo)"}</option>`).join("");
+    $("#filtroBarbero").value = st.barbero;
+    $("#cantBarberos").textContent = activos().length;
   }
   const visibles = () => st.turnos.filter((t) => !st.barbero || t.barbero_id === Number(st.barbero));
 
@@ -94,7 +101,13 @@
     abre = Math.floor(abre / cfg.intervalo) * cfg.intervalo;
     st.abre = abre;
     const filas = Math.ceil((cierra - abre) / cfg.intervalo);
-    const cols = st.barberos.filter((b) => !st.barbero || b.id === Number(st.barbero));
+    // Columnas: barberos activos + inactivos que igual tengan turnos ese día
+    const cols = st.barberos.filter((b) => (b.activo || ts.some((t) => t.barbero_id === b.id)) &&
+      (!st.barbero || b.id === Number(st.barbero)));
+    if (!cols.length) {
+      $("#agenda").innerHTML = `<p class="empty"><i data-lucide="users"></i>No hay barberos activos. Agregalos desde el botón <b>Barberos</b>.</p>`;
+      return;
+    }
     const px = (min) => ((min - abre) / cfg.intervalo) * ROW_H;
 
     const horas = Array.from({ length: filas }, (_, i) => `<span style="top:${i * ROW_H}px">${U.fromMin(abre + i * cfg.intervalo)}</span>`).join("");
@@ -111,7 +124,8 @@
           <div class="agenda__hours">${horas}</div>
           ${cols.map((b) => `<div class="agenda__col" data-barbero="${b.id}">${lineaAhora}
             ${ts.filter((t) => t.barbero_id === b.id).map((t) => `
-              <button class="appt appt--${t.estado}" data-id="${t.id}"
+              <button class="appt appt--${t.estado} ${(t.duracion / cfg.intervalo) * ROW_H < 80 ? "appt--corto" : ""}" data-id="${t.id}"
+                title="${t.hora} · ${U.esc(t.cliente_nombre)} — ${U.esc(t.servicio?.nombre || "")} (${ESTADOS[t.estado].txt})"
                 style="top:${px(U.toMin(t.hora))}px;height:${(t.duracion / cfg.intervalo) * ROW_H - 4}px">
                 <strong>${t.hora} · ${U.esc(t.cliente_nombre)}</strong>
                 <span>${U.esc(t.servicio?.nombre || "")}</span>
@@ -213,9 +227,10 @@
     fN.reset(); $("#nuevoError").hidden = true;
     fN.servicio_id.innerHTML = st.servicios.filter((s) => s.activo)
       .map((s) => `<option value="${s.id}">${U.esc(s.nombre)} · ${U.durTxt(s.duracion)}</option>`).join("");
-    fN.barbero_id.innerHTML = st.barberos.map((b) => `<option value="${b.id}">${U.esc(b.nombre)}</option>`).join("");
-    if (pre.barbero_id) fN.barbero_id.value = pre.barbero_id;
-    else if (st.barbero) fN.barbero_id.value = st.barbero;
+    fN.barbero_id.innerHTML = activos().map((b) => `<option value="${b.id}">${U.esc(b.nombre)}</option>`).join("");
+    if (!activos().length) { U.toast("Primero agregá al menos un barbero activo.", "error"); return; }
+    if (pre.barbero_id && activos().some((b) => b.id === pre.barbero_id)) fN.barbero_id.value = pre.barbero_id;
+    else if (st.barbero && activos().some((b) => b.id === Number(st.barbero))) fN.barbero_id.value = st.barbero;
     fN.fecha.value = st.fecha;
     U.icons();
     $("#modalNuevo").showModal();
@@ -258,6 +273,91 @@
       U.toast("Turno guardado");
       if (d.fecha !== st.fecha) st.fecha = d.fecha;
       cargar();
+    } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+    finally { btn.disabled = false; }
+  });
+
+  /* ---------- Barberos del local ---------- */
+  const fB = $("#formBarbero");
+  const iniciales = (n) => n.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+
+  function renderStaff() {
+    const act = activos().length, inact = st.barberos.length - act;
+    $("#barberosResumen").textContent = `${act} activo${act === 1 ? "" : "s"}` + (inact ? ` · ${inact} inactivo${inact === 1 ? "" : "s"}` : "") +
+      " · los activos aparecen en la reserva online";
+    $("#listaStaff").innerHTML = st.barberos.map((b) => `
+      <li class="staff__item ${b.activo ? "" : "is-off"}" data-id="${b.id}">
+        <span class="avatar">${b.foto ? `<img src="${U.esc(b.foto)}" alt="">` : U.esc(iniciales(b.nombre))}</span>
+        <span class="staff__info"><strong>${U.esc(b.nombre)}</strong><small>${U.esc(b.especialidad || "Sin especialidad")}</small></span>
+        <label class="switch" title="${b.activo ? "Activo: recibe reservas" : "Inactivo: no recibe reservas"}">
+          <input type="checkbox" data-toggle ${b.activo ? "checked" : ""} aria-label="${U.esc(b.nombre)} activo"><span></span>
+        </label>
+        <button class="icon-btn" data-editar aria-label="Editar ${U.esc(b.nombre)}"><i data-lucide="pencil"></i></button>
+        <button class="icon-btn icon-btn--danger" data-borrar aria-label="Eliminar ${U.esc(b.nombre)}"><i data-lucide="trash-2"></i></button>
+      </li>`).join("") || `<li class="empty"><i data-lucide="users"></i>Todavía no hay barberos. Agregá el primero abajo.</li>`;
+    U.icons();
+  }
+  function limpiarFormBarbero() {
+    fB.reset(); fB.id.value = "";
+    $("#formBarberoTitulo").textContent = "Agregar barbero";
+    $("#btnGuardarBarbero").innerHTML = '<i data-lucide="user-plus"></i>Agregar';
+    $("#btnCancelarEdicion").hidden = true; $("#barberoError").hidden = true;
+    U.icons();
+  }
+  async function refrescarBarberos() {
+    st.barberos = await DB.barberos(true);
+    renderStaff(); renderFiltro(); render();
+  }
+
+  $("#btnBarberos").addEventListener("click", () => { limpiarFormBarbero(); renderStaff(); $("#modalBarberos").showModal(); });
+  $("#btnCancelarEdicion").addEventListener("click", limpiarFormBarbero);
+
+  $("#listaStaff").addEventListener("click", async (e) => {
+    const li = e.target.closest(".staff__item"); if (!li) return;
+    const b = st.barberos.find((x) => x.id === Number(li.dataset.id));
+    if (e.target.closest("[data-editar]")) {
+      fB.id.value = b.id; fB.nombre.value = b.nombre; fB.especialidad.value = b.especialidad || ""; fB.foto.value = b.foto || "";
+      $("#formBarberoTitulo").textContent = `Editar a ${b.nombre}`;
+      $("#btnGuardarBarbero").innerHTML = '<i data-lucide="save"></i>Guardar cambios';
+      $("#btnCancelarEdicion").hidden = false; U.icons();
+      fB.nombre.focus();
+    }
+    if (e.target.closest("[data-borrar]")) {
+      if (!confirm(`¿Eliminar a ${b.nombre}? Esta acción no se puede deshacer.`)) return;
+      try { await DB.eliminarBarbero(b.id); U.toast(`${b.nombre} eliminado`); await refrescarBarberos(); }
+      catch (ex) { U.toast(ex.message, "error"); }
+    }
+  });
+
+  $("#listaStaff").addEventListener("change", async (e) => {
+    const chk = e.target.closest("[data-toggle]"); if (!chk) return;
+    const b = st.barberos.find((x) => x.id === Number(chk.closest(".staff__item").dataset.id));
+    if (!chk.checked) {
+      try {
+        const futuros = (await DB.turnos(U.hoy(), U.addDays(U.hoy(), 120)))
+          .filter((t) => t.barbero_id === b.id && ["pendiente", "confirmado"].includes(t.estado)).length;
+        if (futuros && !confirm(`${b.nombre} tiene ${futuros} turno${futuros === 1 ? "" : "s"} próximo${futuros === 1 ? "" : "s"}. ` +
+          "Si lo desactivás, esos turnos se mantienen pero ya no recibirá reservas nuevas. ¿Continuar?")) { chk.checked = true; return; }
+      } catch (ex) { /* si falla la consulta, seguimos igual */ }
+    }
+    try {
+      await DB.guardarBarbero({ id: b.id, activo: chk.checked });
+      U.toast(`${b.nombre} ${chk.checked ? "activado" : "desactivado"}`);
+      await refrescarBarberos();
+    } catch (ex) { chk.checked = !chk.checked; U.toast(ex.message, "error"); }
+  });
+
+  fB.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = $("#barberoError"); err.hidden = true;
+    if (!fB.checkValidity()) { err.textContent = "Ingresá un nombre (y una URL válida si cargás foto)."; err.hidden = false; return; }
+    const id = Number(fB.id.value) || null;
+    const datos = { nombre: fB.nombre.value.trim(), especialidad: fB.especialidad.value.trim() || null, foto: fB.foto.value.trim() || null };
+    const btn = $("#btnGuardarBarbero"); btn.disabled = true;
+    try {
+      await DB.guardarBarbero(id ? { id, ...datos } : datos);
+      U.toast(id ? "Cambios guardados" : `${datos.nombre} agregado`);
+      limpiarFormBarbero(); await refrescarBarberos();
     } catch (ex) { err.textContent = ex.message; err.hidden = false; }
     finally { btn.disabled = false; }
   });

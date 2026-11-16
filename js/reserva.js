@@ -70,6 +70,10 @@
 
   /* ---------- Paso 2: barbero ---------- */
   function renderBarberos() {
+    if (!barberos.length) {
+      $("#listaBarberos").innerHTML = `<p class="empty"><i data-lucide="calendar-x"></i>Por ahora no hay barberos disponibles para reservar online.</p>`;
+      return U.icons();
+    }
     const ini = (n) => n.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
     const opts = [{ id: null, nombre: "Sin preferencia", especialidad: "El primero disponible" }, ...barberos];
     $("#listaBarberos").innerHTML = opts.map((b) => `
