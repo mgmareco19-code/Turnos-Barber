@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel de turnos | Black Label</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="page-admin">
+
+  <!-- LOGIN -->
+  <section class="login" id="vistaLogin" hidden>
+    <form class="login__card" id="formLogin" novalidate>
+      <a href="./" class="logo"><i data-lucide="scissors"></i><span>BLACK <b>LABEL</b></span></a>
+      <h1>Panel de turnos</h1>
+      <label class="field" id="campoEmail">
+        <span>Email</span>
+        <input name="email" type="email" autocomplete="username" placeholder="admin@tubarberia.com">
+      </label>
+      <label class="field">
+        <span>Contraseña</span>
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <p class="note" id="loginHint" hidden>Modo demo: la contraseña es <b>admin</b></p>
+      <p class="form__error" id="loginError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit"><i data-lucide="log-in"></i>INGRESAR</button>
+    </form>
+  </section>
+
+  <!-- PANEL -->
+  <div id="vistaPanel" hidden>
+    <header class="topbar">
+      <div class="container container--wide topbar__inner">
+        <a href="./" class="logo" title="Ver página de reservas"><i data-lucide="scissors"></i><span>BLACK <b>LABEL</b></span></a>
+        <div class="topbar__right">
+          <span class="badge" id="modoBadge"></span>
+          <button class="btn btn--ghost btn--sm" id="btnSalir"><i data-lucide="log-out"></i><span class="hide-sm">Salir</span></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container container--wide admin" id="main">
+      <div class="toolbar">
+        <div class="datenav">
+          <button class="icon-btn" id="diaPrev" aria-label="Día anterior"><i data-lucide="chevron-left"></i></button>
+          <label class="datenav__label">
+            <strong id="diaTexto"></strong>
+            <input type="date" id="diaInput" aria-label="Elegir fecha">
+          </label>
+          <button class="icon-btn" id="diaNext" aria-label="Día siguiente"><i data-lucide="chevron-right"></i></button>
+          <button class="btn btn--ghost btn--sm" id="diaHoy">Hoy</button>
+        </div>
+        <div class="toolbar__right">
+          <select id="filtroBarbero" class="select" aria-label="Filtrar por barbero"><option value="">Todos los barberos</option></select>
+          <div class="segmented" role="tablist" aria-label="Vista">
+            <button role="tab" data-vista="agenda" aria-selected="true"><i data-lucide="calendar-range"></i><span class="hide-sm">Agenda</span></button>
+            <button role="tab" data-vista="lista" aria-selected="false"><i data-lucide="list"></i><span class="hide-sm">Lista</span></button>
+          </div>
+          <button class="btn btn--gold btn--sm" id="btnNuevo"><i data-lucide="plus"></i>Nuevo turno</button>
+        </div>
+      </div>
+
+      <section class="kpis" id="kpis" aria-label="Resumen del día"></section>
+
+      <section id="agenda" class="agenda" aria-label="Agenda del día"></section>
+      <section id="lista" class="tabla-wrap" aria-label="Lista de turnos" hidden></section>
+    </main>
+  </div>
+
+  <!-- DETALLE DE TURNO -->
+  <dialog class="modal" id="modalDetalle">
+    <div class="modal__head">
+      <h2 id="detTitulo">Turno</h2>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <div id="detCuerpo"></div>
+  </dialog>
+
+  <!-- NUEVO TURNO -->
+  <dialog class="modal" id="modalNuevo">
+    <form id="formNuevo" class="form" novalidate>
+      <div class="modal__head">
+        <h2>Nuevo turno</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span>Servicio</span><select name="servicio_id" class="select" required></select></label>
+        <label class="field"><span>Barbero</span><select name="barbero_id" class="select" required></select></label>
+        <label class="field"><span>Fecha</span><input name="fecha" type="date" required></label>
+        <label class="field"><span>Hora</span><select name="hora" class="select" required></select></label>
+        <label class="field"><span>Cliente</span><input name="cliente_nombre" required minlength="2" maxlength="80" autocomplete="off"></label>
+        <label class="field"><span>Celular</span><input name="cliente_telefono" type="tel" required pattern="[0-9 +()-]{6,20}" autocomplete="off"></label>
+      </div>
+      <label class="field"><span>Nota <small>(opcional)</small></span><textarea name="nota" rows="2" maxlength="300"></textarea></label>
+      <p class="form__error" id="nuevoError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit"><i data-lucide="calendar-plus"></i>GUARDAR TURNO</button>
+    </form>
+  </dialog>
+
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

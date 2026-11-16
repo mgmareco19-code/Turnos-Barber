@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reservá tu turno | Black Label Barber Club</title>
+  <meta name="description" content="Elegí servicio, barbero y horario. Reservá tu turno online en menos de un minuto.">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="page-reserva">
+  <header class="topbar">
+    <div class="container topbar__inner">
+      <a href="./" class="logo"><i data-lucide="scissors"></i><span data-nombre>BLACK <b>LABEL</b></span></a>
+      <a class="btn btn--ghost btn--sm" id="waTop" target="_blank" rel="noopener"><i data-lucide="message-circle"></i><span class="hide-sm">Consultas</span></a>
+    </div>
+  </header>
+
+  <main class="container reserva" id="main">
+    <div class="reserva__head">
+      <p class="eyebrow">Turnos online</p>
+      <h1>Reservá tu <span class="gold">turno</span></h1>
+      <p class="muted">Elegí servicio, barbero y horario. Te confirmamos por WhatsApp.</p>
+    </div>
+
+    <ol class="steps" id="steps" aria-label="Pasos de la reserva">
+      <li data-step="1"><button type="button"><span>1</span><em>Servicio</em></button></li>
+      <li data-step="2"><button type="button"><span>2</span><em>Barbero</em></button></li>
+      <li data-step="3"><button type="button"><span>3</span><em>Día y hora</em></button></li>
+      <li data-step="4"><button type="button"><span>4</span><em>Tus datos</em></button></li>
+    </ol>
+
+    <section class="panel" data-panel="1" aria-labelledby="t1">
+      <h2 id="t1">¿Qué te hacemos hoy?</h2>
+      <div class="options" id="listaServicios" role="list"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+    </section>
+
+    <section class="panel" data-panel="2" aria-labelledby="t2" hidden>
+      <h2 id="t2">¿Con quién?</h2>
+      <div class="options options--barbers" id="listaBarberos" role="list"></div>
+      <div class="panel__nav"><button class="btn btn--text" data-back><i data-lucide="arrow-left"></i>Volver</button></div>
+    </section>
+
+    <section class="panel" data-panel="3" aria-labelledby="t3" hidden>
+      <h2 id="t3">Elegí día y horario</h2>
+      <div class="days" id="dias" role="listbox" aria-label="Días disponibles"></div>
+      <p class="day-title" id="diaTitulo"></p>
+      <div class="times" id="horarios" aria-live="polite"></div>
+      <div class="panel__nav"><button class="btn btn--text" data-back><i data-lucide="arrow-left"></i>Volver</button></div>
+    </section>
+
+    <section class="panel" data-panel="4" aria-labelledby="t4" hidden>
+      <h2 id="t4">Confirmá tu reserva</h2>
+      <div class="confirm">
+        <dl class="summary" id="resumen"></dl>
+        <form id="formDatos" class="form" novalidate>
+          <label class="field">
+            <span>Nombre y apellido</span>
+            <input name="nombre" autocomplete="name" required minlength="2" maxlength="80" placeholder="Ej: Juan Pérez">
+          </label>
+          <label class="field">
+            <span>Celular (WhatsApp)</span>
+            <input name="telefono" type="tel" inputmode="tel" autocomplete="tel" required pattern="[0-9 +()-]{6,20}" placeholder="Ej: 0981 123 456">
+          </label>
+          <label class="field">
+            <span>Nota <small>(opcional)</small></span>
+            <textarea name="nota" rows="2" maxlength="300" placeholder="Algo que debamos saber"></textarea>
+          </label>
+          <p class="form__error" id="formError" role="alert" hidden></p>
+          <button class="btn btn--gold btn--block" type="submit" id="btnReservar"><i data-lucide="calendar-check"></i>CONFIRMAR TURNO</button>
+        </form>
+      </div>
+      <div class="panel__nav"><button class="btn btn--text" data-back><i data-lucide="arrow-left"></i>Volver</button></div>
+    </section>
+
+    <section class="panel panel--success" id="exito" hidden aria-live="polite">
+      <div class="success__icon"><i data-lucide="check"></i></div>
+      <h2>¡Turno reservado!</h2>
+      <p class="muted">Guardá tu código de reserva:</p>
+      <p class="code" id="codigo">——</p>
+      <dl class="summary summary--center" id="resumenFinal"></dl>
+      <div class="success__actions">
+        <a class="btn btn--gold" id="waConfirmar" target="_blank" rel="noopener"><i data-lucide="message-circle"></i>AVISAR POR WHATSAPP</a>
+        <button class="btn btn--ghost" id="nuevaReserva">NUEVA RESERVA</button>
+      </div>
+      <p class="note">Si no podés venir, avisanos por WhatsApp con tu código.</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <span><i data-lucide="map-pin"></i> <span id="direccion"></span></span>
+      <a href="admin.html" class="footer__staff">Acceso staff</a>
+    </div>
+    <p class="demo-badge" id="demoBadge" hidden>Modo demo · los turnos se guardan solo en este navegador</p>
+  </footer>
+
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/reserva.js"></script>
+</body>
+</html>
