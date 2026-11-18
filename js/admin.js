@@ -35,7 +35,7 @@
     try {
       [st.servicios, st.barberos] = await Promise.all([DB.servicios(true), DB.barberos(true)]);
     } catch (e) { U.toast(e.message, "error"); }
-    renderFiltro();
+    renderFiltro(); contarServicios();
     await cargar();
     clearInterval(timer);
     timer = setInterval(() => { if (!document.hidden && !$("dialog[open]")) cargar(true); }, 60000);
@@ -120,7 +120,7 @@
       <div class="agenda__scroll">
         <div class="agenda__grid" style="--cols:${cols.length};--h:${filas * ROW_H}px;--row:${ROW_H}px">
           <div class="agenda__corner"></div>
-          ${cols.map((b) => `<div class="agenda__barber">${U.esc(b.nombre)}<small>${ts.filter((t) => t.barbero_id === b.id).length} turnos</small></div>`).join("")}
+          ${cols.map((b) => `<div class="agenda__barber">${U.esc(b.nombre)}<small>${((n) => n + (n === 1 ? " turno" : " turnos"))(ts.filter((t) => t.barbero_id === b.id).length)}</small></div>`).join("")}
           <div class="agenda__hours">${horas}</div>
           ${cols.map((b) => `<div class="agenda__col" data-barbero="${b.id}">${lineaAhora}
             ${ts.filter((t) => t.barbero_id === b.id).map((t) => `
@@ -191,7 +191,9 @@
     $("#detCuerpo").innerHTML = `
       <span class="pill pill--${t.estado}"><i data-lucide="${ESTADOS[t.estado].icon}"></i>${ESTADOS[t.estado].txt}</span>
       <dl class="summary">
-        <div><dt><i data-lucide="scissors"></i>Servicio</dt><dd>${U.esc(t.servicio?.nombre || "")} · ${U.gs(t.servicio?.precio)}</dd></div>
+        <div><dt><i data-lucide="scissors"></i>${t.items.length > 1 ? "Servicios" : "Servicio"}</dt><dd>${t.items.map((i) =>
+          `<span class="dd-line">${U.esc(i.nombre)} <small>${U.gs(i.precio)}</small></span>`).join("")}</dd></div>
+        ${t.items.length > 1 ? `<div><dt><i data-lucide="wallet"></i>Total</dt><dd class="gold">${U.gs(t.precio)}</dd></div>` : ""}
         <div><dt><i data-lucide="user"></i>Barbero</dt><dd>${U.esc(t.barbero?.nombre || "")}</dd></div>
         <div><dt><i data-lucide="calendar"></i>Fecha</dt><dd>${U.fechaLarga(t.fecha)}, ${t.hora} hs (${U.durTxt(t.duracion)})</dd></div>
         <div><dt><i data-lucide="phone"></i>Celular</dt><dd><a href="tel:${U.esc(t.cliente_telefono)}">${U.esc(t.cliente_telefono)}</a></dd></div>
@@ -225,8 +227,12 @@
   const fN = $("#formNuevo");
   function abrirNuevo(pre = {}) {
     fN.reset(); $("#nuevoError").hidden = true;
-    fN.servicio_id.innerHTML = st.servicios.filter((s) => s.activo)
-      .map((s) => `<option value="${s.id}">${U.esc(s.nombre)} · ${U.durTxt(s.duracion)}</option>`).join("");
+    const disponibles = st.servicios.filter((s) => s.activo).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+    if (!disponibles.length) { U.toast("Primero agregá al menos un servicio activo.", "error"); return; }
+    $("#nuevoServicios").innerHTML = disponibles.map((s, i) => `
+      <label><input type="checkbox" name="servicio" value="${s.id}" ${i === 0 ? "checked" : ""}>
+        <span>${U.esc(s.nombre)}</span><small>${U.durTxt(s.duracion)} · ${U.gs(s.precio)}</small></label>`).join("");
+    totalNuevo();
     fN.barbero_id.innerHTML = activos().map((b) => `<option value="${b.id}">${U.esc(b.nombre)}</option>`).join("");
     if (!activos().length) { U.toast("Primero agregá al menos un barbero activo.", "error"); return; }
     if (pre.barbero_id && activos().some((b) => b.id === pre.barbero_id)) fN.barbero_id.value = pre.barbero_id;
@@ -236,9 +242,21 @@
     $("#modalNuevo").showModal();
     horasNuevo(pre.hora);
   }
+  const elegidosNuevo = () => $$("#nuevoServicios input:checked").map((c) => st.servicios.find((s) => s.id === Number(c.value))).filter(Boolean);
+  function totalNuevo() {
+    const el = elegidosNuevo();
+    $("#nuevoTotal").textContent = el.length
+      ? `${el.length} servicio${el.length === 1 ? "" : "s"} · ${U.durTxt(el.reduce((a, s) => a + s.duracion, 0))} · ${U.gs(el.reduce((a, s) => a + s.precio, 0))}`
+      : "Elegí al menos un servicio.";
+  }
+  $("#nuevoServicios").addEventListener("change", (e) => {
+    if (elegidosNuevo().length > DB.MAX_SERVICIOS) { e.target.checked = false; U.toast(`Hasta ${DB.MAX_SERVICIOS} servicios por turno.`, "error"); }
+    totalNuevo(); horasNuevo(fN.hora.value);
+  });
   async function horasNuevo(preHora) {
-    const sel = fN.hora, sv = st.servicios.find((s) => s.id === Number(fN.servicio_id.value));
-    if (!sv || !fN.fecha.value) { sel.innerHTML = ""; return; }
+    const sel = fN.hora, el = elegidosNuevo();
+    const sv = el.length ? { duracion: el.reduce((a, s) => a + s.duracion, 0) } : null;
+    if (!sv || !fN.fecha.value) { sel.innerHTML = `<option value="">${sv ? "" : "Elegí servicios"}</option>`; return; }
     sel.innerHTML = "<option>Cargando…</option>";
     try {
       const oc = await DB.ocupados(fN.fecha.value);
@@ -251,23 +269,23 @@
       else if (libres.length) sel.value = (libres.find((s) => !s.pasado) || libres[0]).hora;
     } catch (e) { sel.innerHTML = `<option value="">Error al cargar</option>`; }
   }
-  ["servicio_id", "barbero_id", "fecha"].forEach((n) => fN[n].addEventListener("change", () => horasNuevo()));
+  ["barbero_id", "fecha"].forEach((n) => fN[n].addEventListener("change", () => horasNuevo()));
   $("#btnNuevo").addEventListener("click", () => abrirNuevo());
 
   fN.addEventListener("submit", async (e) => {
     e.preventDefault();
     const err = $("#nuevoError");
+    const servicio_ids = elegidosNuevo().map((s) => s.id);
+    if (!servicio_ids.length) { err.textContent = "Elegí al menos un servicio."; err.hidden = false; return; }
     if (!fN.checkValidity() || !fN.hora.value) {
       err.textContent = "Revisá los datos: falta la hora, el nombre o un celular válido."; err.hidden = false; return;
     }
     const d = Object.fromEntries(new FormData(fN));
-    const sv = st.servicios.find((s) => s.id === Number(d.servicio_id));
     const btn = $("button[type=submit]", fN); btn.disabled = true;
     try {
       await DB.crearTurno({
-        servicio_id: sv.id, barbero_id: Number(d.barbero_id), fecha: d.fecha, hora: d.hora, duracion: sv.duracion,
+        servicio_ids, barbero_id: Number(d.barbero_id), fecha: d.fecha, hora: d.hora,
         cliente_nombre: d.cliente_nombre.trim(), cliente_telefono: d.cliente_telefono.trim(), nota: d.nota.trim() || null,
-        estado: "confirmado", origen: "local",
       });
       $("#modalNuevo").close();
       U.toast("Turno guardado");
@@ -358,6 +376,119 @@
       await DB.guardarBarbero(id ? { id, ...datos } : datos);
       U.toast(id ? "Cambios guardados" : `${datos.nombre} agregado`);
       limpiarFormBarbero(); await refrescarBarberos();
+    } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+    finally { btn.disabled = false; }
+  });
+
+  /* ---------- Servicios ---------- */
+  const fS = $("#formServicio");
+  const ordenados = () => [...st.servicios].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.id - b.id);
+  const contarServicios = () => { $("#cantServicios").textContent = st.servicios.filter((s) => s.activo).length; };
+
+  function opcionesDuracion(actual) {
+    const mins = []; for (let m = 15; m <= 480; m += 15) mins.push(m);
+    if (actual && !mins.includes(actual)) mins.push(actual), mins.sort((a, b) => a - b);
+    fS.duracion.innerHTML = mins.map((m) => `<option value="${m}">${U.durTxt(m)}</option>`).join("");
+    fS.duracion.value = actual || 60;
+  }
+
+  function renderServ() {
+    const lista = ordenados(), act = lista.filter((s) => s.activo).length, inact = lista.length - act;
+    $("#serviciosResumen").textContent = `${act} activo${act === 1 ? "" : "s"}` + (inact ? ` · ${inact} inactivo${inact === 1 ? "" : "s"}` : "") +
+      " · los activos aparecen en la reserva online";
+    $("#listaServ").innerHTML = lista.map((s, i) => `
+      <li class="staff__item ${s.activo ? "" : "is-off"}" data-id="${s.id}">
+        <span class="orden">
+          <button class="orden__btn" data-mover="-1" ${i === 0 ? "disabled" : ""} aria-label="Subir ${U.esc(s.nombre)}"><i data-lucide="chevron-up"></i></button>
+          <button class="orden__btn" data-mover="1" ${i === lista.length - 1 ? "disabled" : ""} aria-label="Bajar ${U.esc(s.nombre)}"><i data-lucide="chevron-down"></i></button>
+        </span>
+        <span class="staff__info"><strong>${U.esc(s.nombre)}</strong>
+          <small>${U.durTxt(s.duracion)} · ${U.gs(s.precio)}${s.descripcion ? " · " + U.esc(s.descripcion) : ""}</small></span>
+        <label class="switch" title="${s.activo ? "Activo: se puede reservar" : "Inactivo: no aparece en la reserva"}">
+          <input type="checkbox" data-toggle ${s.activo ? "checked" : ""} aria-label="${U.esc(s.nombre)} activo"><span></span>
+        </label>
+        <button class="icon-btn" data-editar aria-label="Editar ${U.esc(s.nombre)}"><i data-lucide="pencil"></i></button>
+        <button class="icon-btn icon-btn--danger" data-borrar aria-label="Eliminar ${U.esc(s.nombre)}"><i data-lucide="trash-2"></i></button>
+      </li>`).join("") || `<li class="empty"><i data-lucide="sparkles"></i>Todavía no hay servicios. Agregá el primero abajo.</li>`;
+    U.icons();
+  }
+  function limpiarFormServicio() {
+    fS.reset(); fS.id.value = ""; opcionesDuracion(60);
+    $("#formServicioTitulo").textContent = "Agregar servicio";
+    $("#btnGuardarServicio").innerHTML = '<i data-lucide="plus"></i>Agregar';
+    $("#btnCancelarServicio").hidden = true; $("#servicioError").hidden = true;
+    U.icons();
+  }
+  async function refrescarServicios() {
+    st.servicios = await DB.servicios(true);
+    renderServ(); contarServicios();
+    await cargar(true); // la agenda muestra nombres y precios de los servicios
+  }
+
+  $("#btnServicios").addEventListener("click", () => { limpiarFormServicio(); renderServ(); $("#modalServicios").showModal(); });
+  $("#btnCancelarServicio").addEventListener("click", limpiarFormServicio);
+
+  $("#listaServ").addEventListener("click", async (e) => {
+    const li = e.target.closest(".staff__item"); if (!li) return;
+    const s = st.servicios.find((x) => x.id === Number(li.dataset.id));
+
+    const mover = e.target.closest("[data-mover]");
+    if (mover) {
+      const lista = ordenados(), i = lista.indexOf(s), j = i + Number(mover.dataset.mover);
+      if (j < 0 || j >= lista.length) return;
+      [lista[i], lista[j]] = [lista[j], lista[i]];
+      $$("#listaServ button").forEach((b) => (b.disabled = true));
+      try {
+        // Renumera 1..n y guarda solo los que cambiaron
+        await Promise.all(lista.map((x, k) => (x.orden === k + 1 ? null : DB.guardarServicio({ id: x.id, orden: k + 1 }))));
+      } catch (ex) { U.toast(ex.message, "error"); }
+      await refrescarServicios();
+      return;
+    }
+    if (e.target.closest("[data-editar]")) {
+      fS.id.value = s.id; fS.nombre.value = s.nombre; fS.descripcion.value = s.descripcion || "";
+      opcionesDuracion(s.duracion); fS.precio.value = s.precio;
+      $("#formServicioTitulo").textContent = `Editar «${s.nombre}»`;
+      $("#btnGuardarServicio").innerHTML = '<i data-lucide="save"></i>Guardar cambios';
+      $("#btnCancelarServicio").hidden = false; $("#servicioError").hidden = true; U.icons();
+      fS.nombre.focus();
+    }
+    if (e.target.closest("[data-borrar]")) {
+      if (!confirm(`¿Eliminar el servicio «${s.nombre}»? Esta acción no se puede deshacer.`)) return;
+      try {
+        await DB.eliminarServicio(s.id);
+        U.toast(`«${s.nombre}» eliminado`);
+        if (Number(fS.id.value) === s.id) limpiarFormServicio();
+        await refrescarServicios();
+      } catch (ex) { U.toast(ex.message, "error"); }
+    }
+  });
+
+  $("#listaServ").addEventListener("change", async (e) => {
+    const chk = e.target.closest("[data-toggle]"); if (!chk) return;
+    const s = st.servicios.find((x) => x.id === Number(chk.closest(".staff__item").dataset.id));
+    try {
+      await DB.guardarServicio({ id: s.id, activo: chk.checked });
+      U.toast(`«${s.nombre}» ${chk.checked ? "activado" : "desactivado"}`);
+      await refrescarServicios();
+    } catch (ex) { chk.checked = !chk.checked; U.toast(ex.message, "error"); }
+  });
+
+  fS.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = $("#servicioError"); err.hidden = true;
+    if (!fS.checkValidity()) { err.textContent = "Completá el nombre, la duración y un precio válido."; err.hidden = false; return; }
+    const id = Number(fS.id.value) || null;
+    const datos = {
+      nombre: fS.nombre.value.trim(), descripcion: fS.descripcion.value.trim() || null,
+      duracion: Number(fS.duracion.value), precio: Math.round(Number(fS.precio.value)),
+    };
+    if (!id) datos.orden = Math.max(0, ...st.servicios.map((x) => x.orden ?? 0)) + 1;
+    const btn = $("#btnGuardarServicio"); btn.disabled = true;
+    try {
+      await DB.guardarServicio(id ? { id, ...datos } : datos);
+      U.toast(id ? "Cambios guardados" : `«${datos.nombre}» agregado`);
+      limpiarFormServicio(); await refrescarServicios();
     } catch (ex) { err.textContent = ex.message; err.hidden = false; }
     finally { btn.disabled = false; }
   });

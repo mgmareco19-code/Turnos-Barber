@@ -4,7 +4,7 @@
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => [...document.querySelectorAll(s)];
 
-  const estado = { paso: 1, servicio: null, barbero: null /* null = sin preferencia */, fecha: null, hora: null };
+  const estado = { paso: 1, servicios: [] /* elegidos, en el orden de la lista */, barbero: null /* null = sin preferencia */, fecha: null, hora: null };
   let servicios = [], barberos = [];
   let pedidoHorarios = 0;
 
@@ -43,30 +43,54 @@
     h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  const maxPaso = () => (!estado.servicio ? 1 : estado.barbero === undefined ? 2 : !estado.hora ? 3 : 4);
+  const maxPaso = () => (!estado.servicios.length ? 1 : estado.barbero === undefined ? 2 : !estado.hora ? 3 : 4);
 
   $$("#steps button").forEach((b) => b.addEventListener("click", () => irA(Number(b.closest("li").dataset.step))));
   $$("[data-back]").forEach((b) => b.addEventListener("click", () => irA(estado.paso - 1)));
 
-  /* ---------- Paso 1: servicio ---------- */
+  /* ---------- Paso 1: servicios (uno o varios) ---------- */
+  const totalDur = () => estado.servicios.reduce((a, s) => a + s.duracion, 0);
+  const totalPrecio = () => estado.servicios.reduce((a, s) => a + s.precio, 0);
+  const nombresServicios = () => estado.servicios.map((s) => s.nombre).join(" + ");
+  const elegido = (id) => estado.servicios.some((s) => s.id === id);
+
   function renderServicios() {
     $("#listaServicios").innerHTML = servicios.map((s) => `
-      <button type="button" class="option ${estado.servicio?.id === s.id ? "is-selected" : ""}" data-id="${s.id}" role="listitem">
+      <button type="button" class="option option--check ${elegido(s.id) ? "is-selected" : ""}" data-id="${s.id}"
+        role="listitem" aria-pressed="${elegido(s.id)}">
+        <span class="check" aria-hidden="true"><i data-lucide="check"></i></span>
         <span class="option__body">
           <strong>${U.esc(s.nombre)}</strong>
           ${s.descripcion ? `<small>${U.esc(s.descripcion)}</small>` : ""}
-          <span class="option__meta"><i data-lucide="clock"></i>${U.durTxt(s.duracion)}</span>
+          <span class="option__meta"><i data-lucide="clock"></i>${U.durTxt(s.duracion)}<b class="price-inline">· ${U.gs(s.precio)}</b></span>
         </span>
         <span class="price">${U.gs(s.precio)}</span>
       </button>`).join("") || `<p class="empty">No hay servicios cargados todavía.</p>`;
+    renderBarra();
     U.icons();
+  }
+  function renderBarra() {
+    const n = estado.servicios.length;
+    $("#barraServicios").hidden = !n;
+    if (!n) return;
+    $("#barraTexto").innerHTML = `<strong>${n} servicio${n === 1 ? "" : "s"}</strong>
+      <span>${U.durTxt(totalDur())} · <b class="gold">${U.gs(totalPrecio())}</b></span>`;
   }
   $("#listaServicios").addEventListener("click", (e) => {
     const b = e.target.closest(".option"); if (!b) return;
-    estado.servicio = servicios.find((s) => s.id === Number(b.dataset.id));
-    estado.barbero = undefined; estado.hora = null;
-    renderServicios(); irA(2);
+    const id = Number(b.dataset.id);
+    if (elegido(id)) estado.servicios = estado.servicios.filter((s) => s.id !== id);
+    else if (estado.servicios.length >= DB.MAX_SERVICIOS) return U.toast(`Podés elegir hasta ${DB.MAX_SERVICIOS} servicios por turno.`, "error");
+    else estado.servicios = servicios.filter((s) => s.id === id || elegido(s.id)); // mantiene el orden de la lista
+    estado.hora = null; // cambia la duración: hay que volver a elegir horario
+    const y = b.getBoundingClientRect().top;
+    renderServicios();
+    // mantener el foco y la posición en el botón tocado
+    const nb = $(`#listaServicios .option[data-id="${id}"]`); nb?.focus({ preventScroll: true });
+    if (nb) window.scrollBy(0, nb.getBoundingClientRect().top - y);
+    $$("#steps li").forEach((li) => (li.querySelector("button").disabled = Number(li.dataset.step) > maxPaso()));
   });
+  $("#btnContinuar").addEventListener("click", () => estado.servicios.length && irA(2));
 
   /* ---------- Paso 2: barbero ---------- */
   function renderBarberos() {
@@ -123,7 +147,7 @@
       const ocupados = await DB.ocupados(estado.fecha);
       if (id !== pedidoHorarios) return; // llegó una respuesta vieja
       const ids = estado.barbero ? [estado.barbero] : barberos.map((b) => b.id);
-      const lista = U.slots(estado.fecha, estado.servicio.duracion, ocupados, ids).filter((s) => !s.pasado);
+      const lista = U.slots(estado.fecha, totalDur(), ocupados, ids).filter((s) => !s.pasado);
       const libres = lista.filter((s) => s.libres.length);
       if (!libres.length) {
         box.innerHTML = `<p class="empty"><i data-lucide="calendar-x"></i>No quedan horarios este día. Probá con otro.</p>`;
@@ -145,11 +169,12 @@
   /* ---------- Paso 4: datos ---------- */
   const nombreBarbero = (id) => (id ? barberos.find((b) => b.id === id)?.nombre : "Sin preferencia");
   const filasResumen = (barberoId) => `
-    <div><dt><i data-lucide="scissors"></i>Servicio</dt><dd>${U.esc(estado.servicio.nombre)}</dd></div>
+    <div><dt><i data-lucide="scissors"></i>${estado.servicios.length > 1 ? "Servicios" : "Servicio"}</dt>
+      <dd>${estado.servicios.map((s) => `<span class="dd-line">${U.esc(s.nombre)}${estado.servicios.length > 1 ? ` <small>${U.gs(s.precio)}</small>` : ""}</span>`).join("")}</dd></div>
     <div><dt><i data-lucide="user"></i>Barbero</dt><dd>${U.esc(nombreBarbero(barberoId))}</dd></div>
     <div><dt><i data-lucide="calendar"></i>Día</dt><dd>${U.fechaLarga(estado.fecha)}</dd></div>
-    <div><dt><i data-lucide="clock"></i>Hora</dt><dd>${estado.hora} hs · ${U.durTxt(estado.servicio.duracion)}</dd></div>
-    <div><dt><i data-lucide="wallet"></i>Precio</dt><dd class="gold">${U.gs(estado.servicio.precio)}</dd></div>`;
+    <div><dt><i data-lucide="clock"></i>Hora</dt><dd>${estado.hora} hs · ${U.durTxt(totalDur())}</dd></div>
+    <div><dt><i data-lucide="wallet"></i>${estado.servicios.length > 1 ? "Total" : "Precio"}</dt><dd class="gold">${U.gs(totalPrecio())}</dd></div>`;
   function renderResumen() { $("#resumen").innerHTML = filasResumen(estado.barbero); U.icons(); }
 
   $("#formDatos").addEventListener("submit", async (e) => {
@@ -165,7 +190,7 @@
     btn.disabled = true; btn.classList.add("is-loading");
     try {
       const datos = Object.fromEntries(new FormData(f));
-      const r = await DB.reservar({ servicio_id: estado.servicio.id, barbero_id: estado.barbero, fecha: estado.fecha, hora: estado.hora, ...datos });
+      const r = await DB.reservar({ servicio_ids: estado.servicios.map((s) => s.id), barbero_id: estado.barbero, fecha: estado.fecha, hora: estado.hora, ...datos });
       mostrarExito(r, datos);
       f.reset();
     } catch (ex) {
@@ -182,7 +207,7 @@
     $("#codigo").textContent = r.codigo;
     $("#resumenFinal").innerHTML = filasResumen(r.barbero_id);
     const msg = `Hola! Reservé un turno en ${cfg.negocio.nombreCompleto}:\n` +
-      `• ${estado.servicio.nombre} con ${nombreBarbero(r.barbero_id)}\n` +
+      `• ${nombresServicios()} con ${nombreBarbero(r.barbero_id)}\n` +
       `• ${U.fechaLarga(estado.fecha)} a las ${estado.hora} hs\n` +
       `• A nombre de ${datos.nombre.trim()}\nCódigo: ${r.codigo}`;
     $("#waConfirmar").href = U.waLink(cfg.negocio.whatsapp, msg);
@@ -191,7 +216,7 @@
   }
 
   $("#nuevaReserva").addEventListener("click", () => {
-    Object.assign(estado, { servicio: null, barbero: undefined, hora: null });
+    Object.assign(estado, { servicios: [], barbero: undefined, hora: null });
     renderServicios(); irA(1);
   });
 

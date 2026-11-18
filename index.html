@@ -4,18 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Reservá tu turno | Black Label Barber Club</title>
-  <meta name="description" content="Elegí servicio, barbero y horario. Reservá tu turno online en menos de un minuto.">
+  <meta name="description" content="Elegí uno o varios servicios, barbero y horario. Reservá tu turno online en menos de un minuto.">
   <meta name="theme-color" content="#111111">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <script>(function(){var t;try{t=localStorage.getItem("tema")}catch(e){}if(t!=="light"&&t!=="dark")t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t})();</script>
 </head>
 <body class="page-reserva">
   <header class="topbar">
     <div class="container topbar__inner">
       <a href="./" class="logo"><i data-lucide="scissors"></i><span data-nombre>BLACK <b>LABEL</b></span></a>
-      <a class="btn btn--ghost btn--sm" id="waTop" target="_blank" rel="noopener"><i data-lucide="message-circle"></i><span class="hide-sm">Consultas</span></a>
+      <div class="topbar__right">
+        <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="Cambiar tema"><i data-lucide="sun" class="ico-sun"></i><i data-lucide="moon" class="ico-moon"></i></button>
+        <a class="btn btn--ghost btn--sm" id="waTop" target="_blank" rel="noopener"><i data-lucide="message-circle"></i><span class="hide-sm">Consultas</span></a>
+      </div>
     </div>
   </header>
 
@@ -23,11 +27,11 @@
     <div class="reserva__head">
       <p class="eyebrow">Turnos online</p>
       <h1>Reservá tu <span class="gold">turno</span></h1>
-      <p class="muted">Elegí servicio, barbero y horario. Te confirmamos por WhatsApp.</p>
+      <p class="muted">Elegí uno o varios servicios, barbero y horario. Te confirmamos por WhatsApp.</p>
     </div>
 
     <ol class="steps" id="steps" aria-label="Pasos de la reserva">
-      <li data-step="1"><button type="button"><span>1</span><em>Servicio</em></button></li>
+      <li data-step="1"><button type="button"><span>1</span><em>Servicios</em></button></li>
       <li data-step="2"><button type="button"><span>2</span><em>Barbero</em></button></li>
       <li data-step="3"><button type="button"><span>3</span><em>Día y hora</em></button></li>
       <li data-step="4"><button type="button"><span>4</span><em>Tus datos</em></button></li>
@@ -35,7 +39,12 @@
 
     <section class="panel" data-panel="1" aria-labelledby="t1">
       <h2 id="t1">¿Qué te hacemos hoy?</h2>
+      <p class="muted panel__hint">Podés elegir más de un servicio, por ejemplo corte + barba.</p>
       <div class="options" id="listaServicios" role="list"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      <div class="barra" id="barraServicios" hidden aria-live="polite">
+        <span class="barra__texto" id="barraTexto"></span>
+        <button type="button" class="btn btn--gold" id="btnContinuar">CONTINUAR<i data-lucide="arrow-right"></i></button>
+      </div>
     </section>
 
     <section class="panel" data-panel="2" aria-labelledby="t2" hidden>

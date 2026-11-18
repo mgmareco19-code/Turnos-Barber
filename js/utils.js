@@ -73,6 +73,30 @@ const U = (() => {
 
   const icons = () => window.lucide && window.lucide.createIcons();
 
+  /* ---------- Modo claro / oscuro ----------
+     El <head> ya aplica el tema antes de dibujar (sin parpadeo).
+     Acá se conectan los botones [data-theme-toggle] y se guarda la elección. */
+  const TEMA_KEY = "tema";
+  const temaGuardado = () => { try { return localStorage.getItem(TEMA_KEY); } catch (e) { return null; } };
+  function aplicarTema(t) {
+    document.documentElement.dataset.theme = t;
+    const txt = t === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
+    document.querySelectorAll("[data-theme-toggle]").forEach((b) => { b.setAttribute("aria-label", txt); b.title = txt; });
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = t === "dark" ? "#111111" : "#F5F3EE";
+  }
+  aplicarTema(document.documentElement.dataset.theme === "light" ? "light" : "dark");
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("[data-theme-toggle]")) return;
+    const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    aplicarTema(t);
+    try { localStorage.setItem(TEMA_KEY, t); } catch (err) { /* sin storage: dura hasta recargar */ }
+  });
+  // Si el usuario nunca eligió, sigue los cambios del sistema
+  window.matchMedia?.("(prefers-color-scheme: light)").addEventListener?.("change", (e) => {
+    if (!temaGuardado()) aplicarTema(e.matches ? "light" : "dark");
+  });
+
   return { iso, parse, addDays, hoy, toMin, fromMin, hhmm, overlap, gs, durTxt, fechaLarga, fechaCorta,
     horarioDe, slots, esc, telWa, waLink, toast, icons, DIAS };
 })();

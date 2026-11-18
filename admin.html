@@ -10,12 +10,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <script>(function(){var t;try{t=localStorage.getItem("tema")}catch(e){}if(t!=="light"&&t!=="dark")t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t})();</script>
 </head>
 <body class="page-admin">
 
   <!-- LOGIN -->
   <section class="login" id="vistaLogin" hidden>
     <form class="login__card" id="formLogin" novalidate>
+      <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="Cambiar tema"><i data-lucide="sun" class="ico-sun"></i><i data-lucide="moon" class="ico-moon"></i></button>
       <a href="./" class="logo"><i data-lucide="scissors"></i><span>BLACK <b>LABEL</b></span></a>
       <h1>Panel de turnos</h1>
       <label class="field" id="campoEmail">
@@ -39,7 +41,9 @@
         <a href="./" class="logo" title="Ver página de reservas"><i data-lucide="scissors"></i><span>BLACK <b>LABEL</b></span></a>
         <div class="topbar__right">
           <span class="badge" id="modoBadge"></span>
+          <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="Cambiar tema"><i data-lucide="sun" class="ico-sun"></i><i data-lucide="moon" class="ico-moon"></i></button>
           <button class="btn btn--ghost btn--sm" id="btnBarberos"><i data-lucide="users"></i><span class="hide-sm">Barberos</span> <span class="count" id="cantBarberos"></span></button>
+          <button class="btn btn--ghost btn--sm" id="btnServicios"><i data-lucide="scissors"></i><span class="hide-sm">Servicios</span> <span class="count" id="cantServicios"></span></button>
           <button class="btn btn--ghost btn--sm" id="btnSalir"><i data-lucide="log-out"></i><span class="hide-sm">Salir</span></button>
         </div>
       </div>
@@ -108,6 +112,33 @@
     </form>
   </dialog>
 
+  <!-- SERVICIOS -->
+  <dialog class="modal modal--wide" id="modalServicios">
+    <div class="modal__head">
+      <div>
+        <h2>Servicios</h2>
+        <p class="note" id="serviciosResumen" style="margin:0"></p>
+      </div>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <ul class="staff" id="listaServ"></ul>
+    <form id="formServicio" class="form staff__form" novalidate>
+      <h3 id="formServicioTitulo">Agregar servicio</h3>
+      <input type="hidden" name="id">
+      <label class="field"><span>Nombre</span><input name="nombre" required minlength="2" maxlength="60" autocomplete="off" placeholder="Ej: Corte clásico"></label>
+      <label class="field"><span>Descripción <small>(opcional)</small></span><input name="descripcion" maxlength="120" autocomplete="off" placeholder="Ej: Tijera y máquina, lavado incluido."></label>
+      <div class="grid-2">
+        <label class="field"><span>Duración</span><select name="duracion" class="select" required></select></label>
+        <label class="field"><span>Precio (Gs.)</span><input name="precio" type="number" inputmode="numeric" required min="0" max="99999999" step="1000" placeholder="Ej: 50000"></label>
+      </div>
+      <p class="form__error" id="servicioError" role="alert" hidden></p>
+      <div class="staff__formbtns">
+        <button class="btn btn--gold btn--sm" type="submit" id="btnGuardarServicio"><i data-lucide="plus"></i>Agregar</button>
+        <button class="btn btn--text btn--sm" type="button" id="btnCancelarServicio" hidden>Cancelar edición</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- NUEVO TURNO -->
   <dialog class="modal" id="modalNuevo">
     <form id="formNuevo" class="form" novalidate>
@@ -115,9 +146,13 @@
         <h2>Nuevo turno</h2>
         <button type="button" class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
       </div>
+      <fieldset class="field checks-field">
+        <legend>Servicios <small>(uno o varios)</small></legend>
+        <div class="checks" id="nuevoServicios"></div>
+        <p class="checks__total" id="nuevoTotal"></p>
+      </fieldset>
       <div class="grid-2">
-        <label class="field"><span>Servicio</span><select name="servicio_id" class="select" required></select></label>
-        <label class="field"><span>Barbero</span><select name="barbero_id" class="select" required></select></label>
+        <label class="field" style="grid-column:1/-1"><span>Barbero</span><select name="barbero_id" class="select" required></select></label>
         <label class="field"><span>Fecha</span><input name="fecha" type="date" required></label>
         <label class="field"><span>Hora</span><select name="hora" class="select" required></select></label>
         <label class="field"><span>Cliente</span><input name="cliente_nombre" required minlength="2" maxlength="80" autocomplete="off"></label>
