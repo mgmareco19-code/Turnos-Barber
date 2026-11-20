@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!--
+  BORRADOR: revisalo con un abogado antes de publicarlo.
+  Completá todo lo que está entre corchetes [ ].
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com https://cdnjs.cloudflare.com 'sha256-NIWjZ1GgWehc5wenKLO5rprxqABb9I5HwTa9HAdMD+I='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <title>Política de privacidad</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script>(function(){var t;try{t=localStorage.getItem("tema")}catch(e){}if(t!=="light"&&t!=="dark")t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t})();</script>
+</head>
+<body class="page-ventas">
+  <header class="topbar">
+    <div class="container topbar__inner">
+      <a class="logo" href="ventas.html"><i data-lucide="scissors"></i><span class="js-plataforma"></span></a>
+      <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="Cambiar tema"><i data-lucide="sun" class="ico-sun"></i><i data-lucide="moon" class="ico-moon"></i></button>
+    </div>
+  </header>
+
+  <main class="container legal">
+    <h1>Política de privacidad</h1>
+    <p class="legal__fecha">Última actualización: [FECHA]</p>
+
+    <h2>1. Quién trata los datos</h2>
+    <p><span class="js-plataforma-txt"></span> es un servicio de [NOMBRE O RAZÓN SOCIAL], RUC [RUC], [CIUDAD], Paraguay. Contacto para temas de privacidad: [EMAIL].</p>
+    <p>Hay dos tipos de datos:</p>
+    <ul>
+      <li><b>Datos de los locales</b> que contratan el servicio (dueños y su personal): la plataforma decide cómo se tratan.</li>
+      <li><b>Datos de los clientes de cada local</b> (quienes reservan turnos o compran): el responsable es el local. La plataforma solo los guarda y procesa por cuenta del local, para prestarle el servicio.</li>
+    </ul>
+
+    <h2>2. Qué datos se guardan</h2>
+    <ul>
+      <li><b>Dueños y personal del local:</b> nombre, email, contraseña (guardada cifrada, nunca en texto) y los datos del local (nombre, dirección, WhatsApp, horario, timbrado).</li>
+      <li><b>Clientes del local:</b> nombre, celular, turnos reservados, servicios y compras, y, si piden factura, su RUC o cédula. El local puede agregar una nota (por ejemplo, preferencias).</li>
+      <li><b>Datos técnicos mínimos</b> para que el sistema funcione y sea seguro, como los intentos de ingreso fallidos.</li>
+    </ul>
+
+    <h2>3. Para qué se usan</h2>
+    <ul>
+      <li>Gestionar las reservas: mostrar los horarios libres, avisar al local y permitir que el cliente vea, cambie o cancele su turno.</li>
+      <li>Que el local registre cobros, emita comprobantes y lleve su gestión.</li>
+      <li>Que el local pueda mandarle al cliente recordatorios de su turno por WhatsApp.</li>
+      <li>Cobrar el abono a los locales y darles soporte.</li>
+    </ul>
+    <p>No vendemos ni cedemos datos a terceros, ni los usamos para publicidad.</p>
+
+    <h2>4. Dónde se guardan y cómo se protegen</h2>
+    <p>Los datos se guardan en servidores de Oracle Cloud ubicados en [Chile (región Santiago)]. Las conexiones van cifradas (https), las contraseñas se guardan cifradas, cada local solo puede ver sus propios datos y el personal solo ve lo que el dueño le habilita. Hacemos respaldos periódicos.</p>
+    <p>En el navegador, la página de reservas puede recordar en tu propio equipo el tema (claro u oscuro) y tus turnos reservados, para mostrártelos la próxima vez. No usamos cookies de publicidad ni de seguimiento.</p>
+
+    <h2>5. Cuánto tiempo se guardan</h2>
+    <p>Mientras el local use el servicio. Si el local se da de baja, sus datos se conservan [90] días para que pueda pedir una copia y después se eliminan, salvo lo que la ley obligue a conservar.</p>
+
+    <h2>6. Tus derechos</h2>
+    <p>Podés pedir acceder a tus datos, corregirlos o que se eliminen.</p>
+    <ul>
+      <li><b>Si sos cliente de un local</b>, escribile directamente al local (su WhatsApp figura en su página de reservas). También podés escribirnos y se lo hacemos llegar.</li>
+      <li><b>Si sos dueño o parte del personal de un local</b>, escribinos a [EMAIL].</li>
+    </ul>
+
+    <h2>7. Cambios</h2>
+    <p>Podemos actualizar esta política. La versión vigente siempre está en esta página, con su fecha de actualización.</p>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <a href="ventas.html">Inicio</a>
+      <a href="terminos.html">Términos y condiciones</a>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js" integrity="sha384-hJnF5AwidE18GSWTAGHv3ByzzvfNZ1Tcx5y1UUV3WkauuMCEzBJBMSwSt/PUPXnM" crossorigin="anonymous"></script>
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/ventas.js"></script>
+</body>
+</html>

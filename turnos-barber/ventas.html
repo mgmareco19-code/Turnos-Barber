@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com https://cdnjs.cloudflare.com 'sha256-NIWjZ1GgWehc5wenKLO5rprxqABb9I5HwTa9HAdMD+I='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <title>Turnos online y gestión para barberías</title>
+  <meta name="description" content="Reservas online, agenda por barbero, cobro con factura en ticket, caja del día, comisiones, stock y clientes. Todo en un solo lugar para tu barbería.">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script>(function(){var t;try{t=localStorage.getItem("tema")}catch(e){}if(t!=="light"&&t!=="dark")t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t})();</script>
+</head>
+<body class="page-ventas">
+  <header class="topbar">
+    <div class="container container--land topbar__inner">
+      <a class="logo" href="#inicio"><i data-lucide="scissors"></i><span class="js-plataforma"></span></a>
+      <div class="topbar__right">
+        <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="Cambiar tema"><i data-lucide="sun" class="ico-sun"></i><i data-lucide="moon" class="ico-moon"></i></button>
+        <a class="btn btn--ghost btn--sm hide-sm" href="admin.html"><i data-lucide="log-in"></i>Ingresar</a>
+        <a class="btn btn--gold btn--sm" data-wa="demo" target="_blank" rel="noopener"><i data-lucide="message-circle"></i><span class="hide-sm">Pedir </span>demo</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="inicio">
+    <!-- HERO -->
+    <section class="land-hero">
+      <div class="container container--land land-hero__inner">
+        <div>
+          <p class="eyebrow">Para barberías de Paraguay</p>
+          <h1>Tu barbería <span class="gold">ordenada</span>, tus clientes reservan solos</h1>
+          <p class="land-lead">Reservas online las 24 horas, agenda de cada barbero, cobro con factura en la misma impresora de tickets, caja del día y comisiones. Todo desde el celular o la computadora.</p>
+          <div class="land-cta">
+            <a class="btn btn--gold" data-wa="demo" target="_blank" rel="noopener"><i data-lucide="message-circle"></i>PEDIR UNA DEMO</a>
+            <a class="btn btn--ghost" href="#precio">VER PRECIO</a>
+          </div>
+          <ul class="land-checks">
+            <li><i data-lucide="check"></i>Sin instalar nada</li>
+            <li><i data-lucide="check"></i>Te lo dejamos configurado</li>
+            <li><i data-lucide="check"></i>Soporte por WhatsApp</li>
+          </ul>
+        </div>
+        <div class="land-mock" aria-hidden="true">
+          <div class="land-mock__bar"><span></span><span></span><span></span></div>
+          <div class="land-mock__body">
+            <p class="land-mock__dia">Hoy · 6 turnos</p>
+            <div class="land-mock__appt is-c"><b>10:00 · Juan B.</b><small>Fade + barba · Diego</small></div>
+            <div class="land-mock__appt is-p"><b>11:00 · Carlos R.</b><small>Corte clásico · Matías</small></div>
+            <div class="land-mock__appt is-ok"><b>12:00 · Pedro G.</b><small>Corte niño · Lucas · Cobrado</small></div>
+            <div class="land-mock__appt is-c"><b>15:30 · Ale D.</b><small>Barba · Diego</small></div>
+            <div class="land-mock__total"><span>Caja de hoy</span><b>Gs. 420.000</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FUNCIONES -->
+    <section class="land-sec" id="funciones">
+      <div class="container container--land">
+        <p class="eyebrow">Qué incluye</p>
+        <h2>Todo lo que tu local necesita, en un solo lugar</h2>
+        <div class="land-grid">
+          <article class="land-card"><i data-lucide="calendar-check"></i><h3>Reservas online</h3><p>Tu link propio: el cliente elige servicios, barbero y horario. Sin turnos dobles, aunque reserven al mismo tiempo.</p></article>
+          <article class="land-card"><i data-lucide="calendar-range"></i><h3>Agenda por barbero</h3><p>Todo el día de un vistazo. Confirmá, marcá atendido o cargá turnos de quienes llaman o pasan por el local.</p></article>
+          <article class="land-card"><i data-lucide="bell-ring"></i><h3>Recordatorios y cambios</h3><p>Mandá el recordatorio de mañana por WhatsApp en un toque. El cliente confirma, cambia o cancela desde su link.</p></article>
+          <article class="land-card"><i data-lucide="receipt"></i><h3>Cobro con factura</h3><p>Factura con timbrado o ticket interno en la misma impresora térmica de 80 mm. Con descuentos y propinas.</p></article>
+          <article class="land-card"><i data-lucide="calculator"></i><h3>Caja y comisiones</h3><p>Cierre de caja del día por forma de pago y la liquidación de cada barbero según su porcentaje.</p></article>
+          <article class="land-card"><i data-lucide="package"></i><h3>Stock, compras y gastos</h3><p>Productos e insumos, compras a proveedores y gastos fijos. El resultado del mes, sin planillas.</p></article>
+          <article class="land-card"><i data-lucide="contact"></i><h3>Clientes frecuentes</h3><p>El historial de cada cliente: cuántas veces vino, qué se hizo y cuánto gastó. Y quién dejó de venir.</p></article>
+          <article class="land-card"><i data-lucide="users"></i><h3>Usuario para cada barbero</h3><p>Cada uno ve solo su agenda y cobra sus turnos. Las ventas, la caja y las comisiones quedan para vos.</p></article>
+          <article class="land-card"><i data-lucide="file-spreadsheet"></i><h3>Excel para tu contador</h3><p>Ventas, compras y gastos del mes con IVA discriminado, listos para mandar.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- CÓMO EMPEZAR -->
+    <section class="land-sec land-sec--alt">
+      <div class="container container--land">
+        <p class="eyebrow">Cómo empezar</p>
+        <h2>En funcionamiento el mismo día</h2>
+        <ol class="land-pasos">
+          <li><span>1</span><div><h3>Escribinos</h3><p>Te mostramos el sistema con datos de ejemplo y resolvemos tus dudas.</p></div></li>
+          <li><span>2</span><div><h3>Lo configuramos</h3><p>Cargamos tus servicios, barberos, horario y logo. Vos recibís tu link de reservas.</p></div></li>
+          <li><span>3</span><div><h3>Compartí tu link</h3><p>En tu Instagram, WhatsApp y en el mostrador con un código QR. Las reservas empiezan a llegar.</p></div></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- PRECIO -->
+    <section class="land-sec" id="precio">
+      <div class="container container--land">
+        <p class="eyebrow">Precio</p>
+        <h2>Un abono mensual, todo incluido</h2>
+        <div class="land-precio">
+          <div class="land-precio__card">
+            <p class="land-precio__monto"><span data-precio>Gs. 55.000</span><small>por mes, por local</small></p>
+            <ul class="land-checks land-checks--col">
+              <li><i data-lucide="check"></i>Reservas online ilimitadas</li>
+              <li><i data-lucide="check"></i>Todos los barberos que tengas</li>
+              <li><i data-lucide="check"></i>Agenda, cobro, caja, comisiones, stock y clientes</li>
+              <li><i data-lucide="check"></i>Configuración inicial y soporte por WhatsApp</li>
+              <li><i data-lucide="check"></i>Sin contrato: pagás mes a mes</li>
+            </ul>
+            <a class="btn btn--gold btn--block" data-wa="alta" target="_blank" rel="noopener"><i data-lucide="message-circle"></i>QUIERO EMPEZAR</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREGUNTAS -->
+    <section class="land-sec land-sec--alt" id="preguntas">
+      <div class="container container--land">
+        <p class="eyebrow">Preguntas frecuentes</p>
+        <h2>Lo que más nos preguntan</h2>
+        <div class="land-faq">
+          <details><summary>¿Necesito instalar algo?</summary><p>No. Funciona en el navegador del celular, la tablet o la computadora. Tus clientes reservan desde un link, sin descargar ninguna aplicación.</p></details>
+          <details><summary>¿Sirve para emitir facturas?</summary><p>Sí, facturas con timbrado (preimpreso o autoimpresor) en formato ticket de 80 mm, con IVA discriminado. Para factura electrónica (SIFEN), consultanos.</p></details>
+          <details><summary>¿Qué pasa si un cliente no puede venir?</summary><p>Desde el link de su turno lo cambia de día u hora o lo cancela, hasta el aviso mínimo que vos definas. El horario queda libre para otro cliente.</p></details>
+          <details><summary>¿Mis barberos ven las ventas y la caja?</summary><p>No. Cada barbero entra con su propio usuario y ve solo su agenda y sus cobros.</p></details>
+          <details><summary>¿Qué pasa con mis datos si dejo de pagar?</summary><p>Las reservas online se pausan, pero tus datos se conservan. Si querés irte, te entregamos tus ventas, compras y gastos en Excel.</p></details>
+          <details><summary>¿Puedo cancelar cuando quiera?</summary><p>Sí. Es un abono mensual, sin contrato de permanencia.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- CIERRE -->
+    <section class="land-final">
+      <div class="container container--land">
+        <h2>¿Lo probamos en tu barbería?</h2>
+        <p class="land-lead">Escribinos y te mostramos cómo quedaría con tus servicios y tu logo.</p>
+        <a class="btn btn--gold" data-wa="demo" target="_blank" rel="noopener"><i data-lucide="message-circle"></i>ESCRIBINOS POR WHATSAPP</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container container--land footer__inner">
+      <span>© <span data-anio></span> <span class="js-plataforma-txt"></span></span>
+      <a href="terminos.html">Términos y condiciones</a>
+      <a href="privacidad.html">Política de privacidad</a>
+      <a href="admin.html">Ingresar al panel</a>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js" integrity="sha384-hJnF5AwidE18GSWTAGHv3ByzzvfNZ1Tcx5y1UUV3WkauuMCEzBJBMSwSt/PUPXnM" crossorigin="anonymous"></script>
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/ventas.js"></script>
+</body>
+</html>
