@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Panel de turnos | Black Label</title>
+  <title>Panel de turnos</title>
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#111111">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,17 +18,17 @@
   <section class="login" id="vistaLogin" hidden>
     <form class="login__card" id="formLogin" novalidate>
       <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="Cambiar tema"><i data-lucide="sun" class="ico-sun"></i><i data-lucide="moon" class="ico-moon"></i></button>
-      <a href="./" class="logo"><i data-lucide="scissors"></i><span>BLACK <b>LABEL</b></span></a>
+      <span class="logo"><i data-lucide="scissors"></i><span id="loginLogo"></span></span>
       <h1>Panel de turnos</h1>
       <label class="field" id="campoEmail">
         <span>Email</span>
-        <input name="email" type="email" autocomplete="username" placeholder="admin@tubarberia.com">
+        <input name="email" type="email" autocomplete="username" placeholder="dueno@tubarberia.com" required>
       </label>
       <label class="field">
         <span>Contraseña</span>
         <input name="password" type="password" autocomplete="current-password" required>
       </label>
-      <p class="note" id="loginHint" hidden>Modo demo: la contraseña es <b>admin</b></p>
+      <div class="note login__demo" id="loginHint" hidden></div>
       <p class="form__error" id="loginError" role="alert" hidden></p>
       <button class="btn btn--gold btn--block" type="submit"><i data-lucide="log-in"></i>INGRESAR</button>
     </form>
@@ -38,18 +38,33 @@
   <div id="vistaPanel" hidden>
     <header class="topbar">
       <div class="container container--wide topbar__inner">
-        <a href="./" class="logo" title="Ver página de reservas"><i data-lucide="scissors"></i><span>BLACK <b>LABEL</b></span></a>
+        <a class="logo" id="logoLink" href="admin.html" title="Ir a la agenda"><i data-lucide="scissors"></i><span id="logoNombre"></span></a>
         <div class="topbar__right">
           <span class="badge" id="modoBadge"></span>
           <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="Cambiar tema"><i data-lucide="sun" class="ico-sun"></i><i data-lucide="moon" class="ico-moon"></i></button>
           <button class="btn btn--ghost btn--sm" id="btnBarberos"><i data-lucide="users"></i><span class="hide-sm">Barberos</span> <span class="count" id="cantBarberos"></span></button>
           <button class="btn btn--ghost btn--sm" id="btnServicios"><i data-lucide="scissors"></i><span class="hide-sm">Servicios</span> <span class="count" id="cantServicios"></span></button>
+          <button class="btn btn--ghost btn--sm" id="btnConfig"><i data-lucide="settings"></i><span class="hide-sm">Configuración</span></button>
           <button class="btn btn--ghost btn--sm" id="btnSalir"><i data-lucide="log-out"></i><span class="hide-sm">Salir</span></button>
         </div>
       </div>
+      <nav class="modulos" aria-label="Secciones del panel">
+        <div class="container container--wide modulos__inner" role="tablist">
+          <button role="tab" data-mod="agenda" aria-selected="true"><i data-lucide="calendar-range"></i>Agenda</button>
+          <button role="tab" data-mod="ventas" aria-selected="false"><i data-lucide="receipt"></i>Ventas</button>
+          <button role="tab" data-mod="compras" aria-selected="false"><i data-lucide="shopping-cart"></i>Compras</button>
+          <button role="tab" data-mod="gastos" aria-selected="false"><i data-lucide="wallet"></i>Gastos</button>
+          <button role="tab" data-mod="stock" aria-selected="false"><i data-lucide="package"></i>Stock <span class="count count--warn" id="cantBajo" hidden title="Productos con stock bajo"></span></button>
+          <button role="tab" data-mod="clientes" aria-selected="false"><i data-lucide="contact"></i>Clientes</button>
+        </div>
+      </nav>
     </header>
 
     <main class="container container--wide admin" id="main">
+      <div class="abono" id="abonoAviso" hidden role="status"></div>
+
+      <!-- ============ AGENDA ============ -->
+      <div data-modulo="agenda">
       <div class="toolbar">
         <div class="datenav">
           <button class="icon-btn" id="diaPrev" aria-label="Día anterior"><i data-lucide="chevron-left"></i></button>
@@ -66,6 +81,8 @@
             <button role="tab" data-vista="agenda" aria-selected="true"><i data-lucide="calendar-range"></i><span class="hide-sm">Agenda</span></button>
             <button role="tab" data-vista="lista" aria-selected="false"><i data-lucide="list"></i><span class="hide-sm">Lista</span></button>
           </div>
+          <button class="btn btn--ghost btn--sm" id="btnBloqueos" title="Vacaciones, feriados o un barbero que falta"><i data-lucide="calendar-off"></i>Bloqueos</button>
+          <button class="btn btn--ghost btn--sm" id="btnRecordatorios" title="Mandar el recordatorio de mañana por WhatsApp"><i data-lucide="bell-ring"></i>Recordatorios</button>
           <button class="btn btn--gold btn--sm" id="btnNuevo"><i data-lucide="plus"></i>Nuevo turno</button>
         </div>
       </div>
@@ -74,8 +91,121 @@
 
       <section id="agenda" class="agenda" aria-label="Agenda del día"></section>
       <section id="lista" class="tabla-wrap" aria-label="Lista de turnos" hidden></section>
+      </div>
+
+      <!-- ============ VENTAS Y FACTURACIÓN ============ -->
+      <div data-modulo="ventas" hidden>
+        <div class="toolbar">
+          <div class="datenav" data-mesnav></div>
+          <div class="toolbar__right">
+            <select id="ventasFiltro" class="select" aria-label="Filtrar comprobantes">
+              <option value="">Todos los comprobantes</option><option value="factura">Solo facturas</option>
+              <option value="ticket">Solo tickets internos</option><option value="anulada">Anulados</option>
+            </select>
+            <button class="btn btn--ghost btn--sm" id="btnCaja" title="Cierre de caja del día"><i data-lucide="calculator"></i>Caja del día</button>
+            <button class="btn btn--ghost btn--sm" id="btnComisiones" title="Comisiones de los barberos"><i data-lucide="hand-coins"></i>Comisiones</button>
+            <button class="btn btn--ghost btn--sm" id="btnTimbrado"><i data-lucide="stamp"></i><span class="hide-sm">Timbrado</span></button>
+            <button class="btn btn--gold btn--sm" id="btnNuevaVenta"><i data-lucide="plus"></i>Nueva venta</button>
+          </div>
+        </div>
+        <div class="abono" id="timbradoAviso" hidden role="status"></div>
+        <section class="kpis" id="kpisVentas" aria-label="Resumen de ventas del mes"></section>
+        <section class="tabla-wrap" id="listaVentas" aria-label="Comprobantes del mes"></section>
+      </div>
+
+      <!-- ============ COMPRAS ============ -->
+      <div data-modulo="compras" hidden>
+        <div class="toolbar">
+          <div class="datenav" data-mesnav></div>
+          <div class="toolbar__right">
+            <input id="comprasBuscar" class="select buscar" type="search" placeholder="Buscar proveedor o producto" aria-label="Buscar compras">
+            <button class="btn btn--ghost btn--sm" id="btnProveedores"><i data-lucide="truck"></i>Proveedores</button>
+            <button class="btn btn--gold btn--sm" id="btnNuevaCompra"><i data-lucide="plus"></i>Nueva compra</button>
+          </div>
+        </div>
+        <section class="kpis" id="kpisCompras" aria-label="Resumen de compras del mes"></section>
+        <section class="tabla-wrap" id="listaCompras" aria-label="Compras del mes"></section>
+      </div>
+
+      <!-- ============ GASTOS ============ -->
+      <div data-modulo="gastos" hidden>
+        <div class="toolbar">
+          <div class="datenav" data-mesnav></div>
+          <div class="toolbar__right">
+            <select id="gastosCat" class="select" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option></select>
+            <button class="btn btn--gold btn--sm" id="btnNuevoGasto"><i data-lucide="plus"></i>Nuevo gasto</button>
+          </div>
+        </div>
+        <section class="kpis" id="kpisGastos" aria-label="Resumen de gastos del mes"></section>
+        <div class="ges-grid">
+          <section class="ing-card" aria-labelledby="catTit">
+            <div class="ing-card__head"><h2 id="catTit">Por categoría</h2></div>
+            <ul class="cat-bars" id="gastosPorCat"></ul>
+          </section>
+          <section class="tabla-wrap" id="listaGastos" aria-label="Gastos del mes"></section>
+        </div>
+      </div>
+
+      <!-- ============ STOCK ============ -->
+      <!-- ============ CLIENTES ============ -->
+      <div data-modulo="clientes" hidden>
+        <div class="toolbar">
+          <div class="toolbar__right">
+            <input id="clientesBuscar" class="select buscar" type="search" placeholder="Buscar nombre, celular o RUC" aria-label="Buscar clientes">
+            <select id="clientesFiltro" class="select" aria-label="Filtrar clientes">
+              <option value="">Todos los clientes</option>
+              <option value="frecuentes">Frecuentes (3 visitas o más)</option>
+              <option value="proximo">Con turno reservado</option>
+              <option value="perdidos">No vuelven hace 60 días</option>
+            </select>
+            <select id="clientesOrden" class="select" aria-label="Ordenar clientes">
+              <option value="ultima">Última visita</option><option value="visitas">Más visitas</option>
+              <option value="gastado">Más gastado</option><option value="nombre">Nombre</option>
+            </select>
+          </div>
+          <button class="btn btn--gold btn--sm" id="btnNuevoCliente"><i data-lucide="user-plus"></i>Nuevo cliente</button>
+        </div>
+        <section class="kpis" id="kpisClientes" aria-label="Resumen de clientes"></section>
+        <section class="tabla-wrap" id="listaClientes" aria-label="Clientes"></section>
+      </div>
+
+      <div data-modulo="stock" hidden>
+        <div class="toolbar">
+          <div class="toolbar__right">
+            <input id="stockBuscar" class="select buscar" type="search" placeholder="Buscar producto" aria-label="Buscar producto">
+            <select id="stockFiltro" class="select" aria-label="Filtrar productos">
+              <option value="">Todos los productos</option><option value="venta">Para vender</option><option value="insumo">Insumos (uso interno)</option>
+              <option value="bajo">Stock bajo o sin stock</option><option value="inactivo">Inactivos</option>
+            </select>
+          </div>
+          <button class="btn btn--gold btn--sm" id="btnNuevoProducto"><i data-lucide="plus"></i>Nuevo producto</button>
+        </div>
+        <section class="kpis" id="kpisStock" aria-label="Resumen del stock"></section>
+        <section class="tabla-wrap" id="listaStock" aria-label="Productos"></section>
+      </div>
     </main>
   </div>
+
+  <!-- RECORDATORIOS POR WHATSAPP -->
+  <dialog class="modal modal--wide" id="modalRecordatorios" aria-labelledby="recTitulo">
+    <div class="modal__head">
+      <h2 id="recTitulo">Recordatorios</h2>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <div class="rec__barra">
+      <div class="segmented" role="tablist" aria-label="Día">
+        <button role="tab" data-rec-dia="1" aria-selected="true">Mañana</button>
+        <button role="tab" data-rec-dia="0" aria-selected="false">Hoy</button>
+      </div>
+      <span class="muted" id="recResumen" aria-live="polite"></span>
+    </div>
+    <p class="note" style="margin:0 0 .8rem">Tocá <b>Enviar</b> en cada cliente: se abre WhatsApp con el mensaje listo, con el link para que confirme, cambie o cancele.</p>
+    <div class="rec__lista" id="recLista"></div>
+    <details class="rec__vista">
+      <summary>Ver cómo queda el mensaje</summary>
+      <pre id="recEjemplo"></pre>
+    </details>
+  </dialog>
 
   <!-- DETALLE DE TURNO -->
   <dialog class="modal" id="modalDetalle">
@@ -104,6 +234,10 @@
         <label class="field"><span>Especialidad <small>(opcional)</small></span><input name="especialidad" maxlength="60" autocomplete="off" placeholder="Ej: Fades y diseños"></label>
       </div>
       <label class="field"><span>Foto <small>(URL opcional)</small></span><input name="foto" type="url" placeholder="https://…"></label>
+      <div class="grid-2">
+        <label class="field"><span>Comisión por servicios <small>(%)</small></span><input name="comision" type="number" inputmode="numeric" min="0" max="100" step="1" placeholder="Ej: 40"></label>
+        <label class="field"><span>Comisión por productos <small>(%)</small></span><input name="comision_prod" type="number" inputmode="numeric" min="0" max="100" step="1" placeholder="Ej: 10"></label>
+      </div>
       <p class="form__error" id="barberoError" role="alert" hidden></p>
       <div class="staff__formbtns">
         <button class="btn btn--gold btn--sm" type="submit" id="btnGuardarBarbero"><i data-lucide="user-plus"></i>Agregar</button>
@@ -139,6 +273,73 @@
     </form>
   </dialog>
 
+  <!-- CONFIGURACIÓN DEL LOCAL -->
+  <dialog class="modal modal--wide" id="modalConfig">
+    <form id="formConfig" class="form" novalidate>
+      <div class="modal__head">
+        <h2>Configuración del local</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="field">
+        <span>Tu link de reservas <small>(compartilo en Instagram, WhatsApp, Google…)</small></span>
+        <div class="copiar">
+          <input id="cfgLink" readonly aria-label="Link de reservas">
+          <button type="button" class="icon-btn" id="btnCopiarLink" aria-label="Copiar link"><i data-lucide="copy"></i></button>
+          <a class="icon-btn" id="btnAbrirLink" target="_blank" rel="noopener" aria-label="Abrir página de reservas"><i data-lucide="external-link"></i></a>
+        </div>
+      </div>
+
+      <h3 class="cfg__sec">Logo</h3>
+      <div class="logo-edit">
+        <div class="logo-edit__prev" id="cfgLogoPrev"></div>
+        <div class="logo-edit__acc">
+          <div class="staff__formbtns">
+            <label class="btn btn--ghost btn--sm"><i data-lucide="upload"></i><span id="cfgLogoTxt">Subir logo</span>
+              <input type="file" id="cfgLogoFile" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden></label>
+            <button type="button" class="btn btn--text btn--sm" id="cfgLogoQuitar"><i data-lucide="trash-2"></i>Quitar</button>
+          </div>
+          <label class="check-inline"><input type="checkbox" name="logo_solo"> Mi logo ya tiene el nombre (no repetirlo al lado)</label>
+          <small class="note">PNG, JPG, WEBP o SVG. Se ve mejor cuadrado o con fondo transparente.</small>
+        </div>
+      </div>
+
+      <h3 class="cfg__sec">Datos del local</h3>
+      <div class="grid-2">
+        <label class="field"><span>Nombre completo</span><input name="nombre" required minlength="2" maxlength="60" autocomplete="off" placeholder="Ej: Black Label Barber Club"></label>
+        <label class="field"><span>Nombre corto <small>(logo)</small></span><input name="nombre_corto" maxlength="20" autocomplete="off" placeholder="Ej: Black Label"></label>
+        <label class="field"><span>WhatsApp del local</span><input name="whatsapp" type="tel" inputmode="tel" pattern="[0-9 +()-]{6,20}" autocomplete="off" placeholder="Ej: 0981 123 456"></label>
+        <label class="field"><span>Dirección</span><input name="direccion" maxlength="100" autocomplete="off" placeholder="Ej: Av. España 850, Asunción"></label>
+      </div>
+
+      <h3 class="cfg__sec">Horario de atención</h3>
+      <div class="horario" id="cfgHorario"></div>
+
+      <h3 class="cfg__sec">Reservas online</h3>
+      <div class="grid-3">
+        <label class="field"><span>Turnos cada</span><select name="intervalo" class="select">
+          <option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hora</option></select></label>
+        <label class="field"><span>Reservar hasta</span><select name="dias_anticipacion" class="select">
+          <option value="7">1 semana antes</option><option value="14">2 semanas antes</option><option value="21">3 semanas antes</option><option value="30">1 mes antes</option><option value="60">2 meses antes</option></select></label>
+        <label class="field"><span>Aviso mínimo</span><select name="margen_minutos" class="select">
+          <option value="0">Sin mínimo</option><option value="15">15 min antes</option><option value="30">30 min antes</option><option value="60">1 hora antes</option><option value="120">2 horas antes</option><option value="240">4 horas antes</option></select></label>
+      </div>
+
+      <div id="cfgClave" hidden>
+        <h3 class="cfg__sec">Cambiar contraseña <small class="muted">(dejalo vacío para no cambiarla)</small></h3>
+        <div class="grid-2">
+          <label class="field"><span>Nueva contraseña</span><input name="clave_nueva" type="password" maxlength="100" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></label>
+          <label class="field"><span>Repetir contraseña</span><input name="clave_repetir" type="password" maxlength="100" autocomplete="new-password"></label>
+        </div>
+      </div>
+
+      <div class="cfg__abono" id="cfgAbono"></div>
+
+      <p class="form__error" id="configError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit"><i data-lucide="save"></i>GUARDAR CONFIGURACIÓN</button>
+    </form>
+  </dialog>
+
   <!-- NUEVO TURNO -->
   <dialog class="modal" id="modalNuevo">
     <form id="formNuevo" class="form" novalidate>
@@ -164,11 +365,360 @@
     </form>
   </dialog>
 
+  <!-- NUEVA VENTA / COBRAR -->
+  <dialog class="modal modal--wide" id="modalVenta">
+    <form id="formVenta" class="form" novalidate>
+      <div class="modal__head">
+        <div>
+          <h2 id="ventaTitulo">Nueva venta</h2>
+          <p class="note" id="ventaSub" style="margin:0" hidden></p>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span>Cliente <small>(nombre o razón social)</small></span><input name="cliente_nombre" maxlength="100" autocomplete="off" placeholder="Sin nombre"></label>
+        <label class="field"><span>RUC o cédula <small>(opcional)</small></span><input name="cliente_ruc" maxlength="20" inputmode="numeric" autocomplete="off" placeholder="Ej: 1234567-8"></label>
+      </div>
+      <div class="field">
+        <span>Servicios y productos</span>
+        <select class="select" id="ventaAgregar" aria-label="Agregar servicio o producto"></select>
+        <div class="lineas" id="ventaLineas"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <span>Descuento <small>(opcional)</small></span>
+          <div class="input-unidad">
+            <input name="descuento" type="number" inputmode="numeric" min="0" step="1" placeholder="0" aria-label="Descuento">
+            <select name="desc_tipo" class="select" aria-label="Descuento en guaraníes o porcentaje"><option value="gs">Gs.</option><option value="pct">%</option></select>
+          </div>
+        </div>
+        <label class="field"><span>Propina para el barbero <small>(no va en la factura)</small></span>
+          <input name="propina" type="number" inputmode="numeric" min="0" step="1000" placeholder="0"></label>
+      </div>
+      <div class="totalbox" id="ventaTotal"></div>
+      <div class="grid-3">
+        <label class="field"><span>Forma de pago</span><select name="forma_pago" class="select"></select></label>
+        <label class="field"><span>Condición</span><select name="condicion" class="select"><option value="contado">Contado</option><option value="credito">Crédito</option></select></label>
+        <label class="field"><span>Barbero <small>(opcional)</small></span><select name="barbero_id" class="select"></select></label>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span>Fecha</span><input name="fecha" type="date" required></label>
+        <div class="field">
+          <span>Comprobante</span>
+          <label class="switch-row"><span class="switch"><input type="checkbox" name="factura"><span></span></span><span id="ventaComp">Emitir factura</span></label>
+        </div>
+      </div>
+      <label class="field"><span>Nota <small>(opcional, no sale en la factura)</small></span><input name="nota" maxlength="300" autocomplete="off"></label>
+      <p class="form__error" id="ventaError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit" id="btnCobrar"><i data-lucide="check"></i><span>COBRAR</span></button>
+    </form>
+  </dialog>
+
+  <!-- COMPROBANTE (factura / ticket) -->
+  <dialog class="modal modal--doc" id="modalComprobante">
+    <div class="modal__head">
+      <h2 id="compTitulo">Comprobante</h2>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <div class="hoja" id="compHoja"></div>
+    <div class="modal__actions">
+      <button class="btn btn--gold btn--sm" id="compImprimir"><i data-lucide="printer"></i>Imprimir</button>
+      <a class="btn btn--ghost btn--sm" id="compWa" target="_blank" rel="noopener"><i data-lucide="message-circle"></i>WhatsApp</a>
+      <button class="btn btn--danger btn--sm" id="compAnular"><i data-lucide="ban"></i>Anular</button>
+    </div>
+  </dialog>
+
+  <!-- TIMBRADO -->
+  <dialog class="modal modal--wide" id="modalTimbrado">
+    <form id="formTimbrado" class="form" novalidate>
+      <div class="modal__head">
+        <div>
+          <h2>Datos de facturación</h2>
+          <p class="note" style="margin:0">Copiálos de tu constancia de timbrado (DNIT). Salen impresos en cada factura.</p>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span>Razón social</span><input name="razon_social" required maxlength="100" autocomplete="off" placeholder="Ej: Black Label S.R.L."></label>
+        <label class="field"><span>RUC</span><input name="ruc" required maxlength="12" autocomplete="off" placeholder="Ej: 80012345-6"></label>
+      </div>
+      <label class="field"><span>Actividad económica <small>(opcional)</small></span><input name="actividad" maxlength="120" autocomplete="off" placeholder="Ej: Peluquería y otros tratamientos de belleza"></label>
+      <div class="grid-2">
+        <label class="field"><span>Dirección fiscal <small>(vacío = la del local)</small></span><input name="direccion" maxlength="120" autocomplete="off"></label>
+        <label class="field"><span>Teléfono <small>(vacío = WhatsApp del local)</small></span><input name="telefono" maxlength="30" autocomplete="off"></label>
+      </div>
+      <h3 class="cfg__sec">Timbrado</h3>
+      <div class="grid-3">
+        <label class="field"><span>Nº de timbrado</span><input name="timbrado" required inputmode="numeric" maxlength="8" autocomplete="off" placeholder="8 dígitos"></label>
+        <label class="field"><span>Inicio de vigencia</span><input name="desde" type="date" required></label>
+        <label class="field"><span>Fin de vigencia</span><input name="hasta" type="date" required></label>
+      </div>
+      <h3 class="cfg__sec">Numeración</h3>
+      <div class="grid-3">
+        <label class="field"><span>Establecimiento</span><input name="establecimiento" required inputmode="numeric" maxlength="3" value="001"></label>
+        <label class="field"><span>Punto de expedición</span><input name="punto" required inputmode="numeric" maxlength="3" value="001"></label>
+        <label class="field"><span>Próximo número</span><input name="proximo" type="number" required min="1" max="9999999" step="1" value="1"></label>
+      </div>
+      <p class="note" id="timbradoPrev"></p>
+      <p class="form__error" id="timbradoError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit"><i data-lucide="save"></i>GUARDAR DATOS DE FACTURACIÓN</button>
+    </form>
+  </dialog>
+
+  <!-- NUEVA COMPRA -->
+  <dialog class="modal modal--wide" id="modalCompra">
+    <form id="formCompra" class="form" novalidate>
+      <div class="modal__head">
+        <h2>Nueva compra</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span>Proveedor</span><input name="proveedor" required minlength="2" maxlength="80" list="proveedoresLista" autocomplete="off" placeholder="Ej: Distribuidora Capilar"></label>
+        <label class="field"><span>RUC del proveedor <small>(opcional)</small></span><input name="proveedor_ruc" maxlength="12" autocomplete="off" placeholder="Ej: 80012345-6"></label>
+        <label class="field"><span>Nº de factura <small>(opcional)</small></span><input name="numero" maxlength="20" autocomplete="off" placeholder="Ej: 001-001-0004521"></label>
+        <label class="field"><span>Fecha</span><input name="fecha" type="date" required></label>
+      </div>
+      <datalist id="proveedoresLista"></datalist>
+      <div class="field">
+        <span>Productos</span>
+        <div class="agregar">
+          <select class="select" id="compraAgregar" aria-label="Agregar producto"></select>
+          <button type="button" class="btn btn--ghost btn--sm" id="compraProdNuevo"><i data-lucide="package-plus"></i><span class="hide-sm">Producto nuevo</span></button>
+        </div>
+        <div class="lineas" id="compraLineas"></div>
+      </div>
+      <div class="totalbox" id="compraTotal"></div>
+      <div class="grid-2">
+        <label class="field"><span>Condición</span><select name="condicion" class="select"><option value="contado">Contado</option><option value="credito">Crédito</option></select></label>
+        <label class="field"><span>Forma de pago</span><select name="forma_pago" class="select"></select></label>
+      </div>
+      <label class="field"><span>Nota <small>(opcional)</small></span><input name="nota" maxlength="300" autocomplete="off"></label>
+      <p class="form__error" id="compraError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit"><i data-lucide="save"></i>GUARDAR COMPRA Y SUMAR AL STOCK</button>
+    </form>
+  </dialog>
+
+  <!-- GASTO -->
+  <dialog class="modal" id="modalGasto">
+    <form id="formGasto" class="form" novalidate>
+      <div class="modal__head">
+        <h2 id="gastoTitulo">Nuevo gasto</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+      <input type="hidden" name="id">
+      <div class="grid-2">
+        <label class="field"><span>Categoría</span><select name="categoria" class="select" required></select></label>
+        <label class="field"><span>Monto (Gs.)</span><input name="monto" type="number" inputmode="numeric" required min="1" max="100000000" step="1" placeholder="Ej: 450000"></label>
+      </div>
+      <label class="field"><span>Descripción</span><input name="descripcion" required minlength="2" maxlength="120" autocomplete="off" placeholder="Ej: Factura de luz de octubre"></label>
+      <div class="grid-2">
+        <label class="field"><span>Fecha</span><input name="fecha" type="date" required></label>
+        <label class="field"><span>Forma de pago</span><select name="forma_pago" class="select"></select></label>
+        <label class="field"><span>Proveedor <small>(opcional)</small></span><input name="proveedor" maxlength="80" list="proveedoresLista" autocomplete="off"></label>
+        <label class="field"><span>Nº de comprobante <small>(opcional)</small></span><input name="comprobante" maxlength="30" autocomplete="off"></label>
+      </div>
+      <p class="form__error" id="gastoError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit"><i data-lucide="save"></i>GUARDAR GASTO</button>
+    </form>
+  </dialog>
+
+  <!-- PRODUCTO -->
+  <dialog class="modal" id="modalProducto">
+    <form id="formProducto" class="form" novalidate>
+      <div class="modal__head">
+        <h2 id="productoTitulo">Nuevo producto</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+      <input type="hidden" name="id">
+      <label class="field"><span>Nombre</span><input name="nombre" required minlength="2" maxlength="60" autocomplete="off" placeholder="Ej: Pomada mate 100 g"></label>
+      <div class="field">
+        <span>Tipo</span>
+        <div class="segmented segmented--block" role="radiogroup" aria-label="Tipo de producto">
+          <label><input type="radio" name="tipo" value="venta" checked><span><i data-lucide="tag"></i>Para vender</span></label>
+          <label><input type="radio" name="tipo" value="insumo"><span><i data-lucide="spray-can"></i>Insumo (uso interno)</span></label>
+        </div>
+      </div>
+      <div class="grid-2">
+        <label class="field" id="campoPrecio"><span>Precio de venta (Gs.)</span><input name="precio" type="number" inputmode="numeric" min="0" max="100000000" step="1" placeholder="Ej: 85000"></label>
+        <label class="field"><span>Costo (Gs.) <small>(se actualiza con cada compra)</small></span><input name="costo" type="number" inputmode="numeric" min="0" max="100000000" step="1" placeholder="Ej: 50000"></label>
+        <label class="field"><span>IVA</span><select name="iva" class="select"><option value="10">10 %</option><option value="5">5 %</option><option value="0">Exenta</option></select></label>
+        <label class="field"><span>Unidad</span><input name="unidad" maxlength="15" autocomplete="off" value="unidad" placeholder="unidad, caja, litro…"></label>
+        <label class="field" id="campoStockIni"><span>Stock inicial</span><input name="stock" type="number" inputmode="numeric" min="0" max="99999" step="1" value="0"></label>
+        <label class="field"><span>Stock mínimo <small>(aviso)</small></span><input name="minimo" type="number" inputmode="numeric" min="0" max="99999" step="1" value="0"></label>
+      </div>
+      <label class="switch-row" id="campoActivo"><span class="switch"><input type="checkbox" name="activo" checked><span></span></span>Activo (aparece para vender y comprar)</label>
+      <p class="form__error" id="productoError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit"><i data-lucide="save"></i>GUARDAR PRODUCTO</button>
+    </form>
+  </dialog>
+
+  <!-- AJUSTE DE STOCK -->
+  <dialog class="modal" id="modalAjuste">
+    <form id="formAjuste" class="form" novalidate>
+      <div class="modal__head">
+        <div>
+          <h2>Ajustar stock</h2>
+          <p class="note" id="ajusteProd" style="margin:0"></p>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+      <input type="hidden" name="id">
+      <label class="field"><span>Motivo</span><select name="tipo" class="select">
+        <option value="uso">Uso en el local (descuenta)</option>
+        <option value="perdida">Pérdida, rotura o vencimiento (descuenta)</option>
+        <option value="ingreso">Ingreso sin compra, ej. regalo o devolución (suma)</option>
+        <option value="conteo">Conteo físico (fija el stock real)</option>
+      </select></label>
+      <label class="field"><span id="ajusteCantTxt">Cantidad</span><input name="cantidad" type="number" inputmode="numeric" required min="0" max="99999" step="1"></label>
+      <label class="field"><span>Nota <small>(opcional)</small></span><input name="nota" maxlength="120" autocomplete="off"></label>
+      <p class="note" id="ajustePrev"></p>
+      <p class="form__error" id="ajusteError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit"><i data-lucide="save"></i>GUARDAR AJUSTE</button>
+    </form>
+  </dialog>
+
+  <!-- DETALLE GENÉRICO (compra, historial de stock) -->
+  <dialog class="modal modal--wide" id="modalVer">
+    <div class="modal__head">
+      <div>
+        <h2 id="verTitulo"></h2>
+        <p class="note" id="verSub" style="margin:0"></p>
+      </div>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <div id="verCuerpo"></div>
+  </dialog>
+
+  <!-- Lo que se imprime (factura o ticket) -->
+  <!-- BLOQUEOS DE HORARIOS -->
+  <dialog class="modal modal--wide" id="modalBloqueos" aria-labelledby="bloqTitulo">
+    <div class="modal__head">
+      <div>
+        <h2 id="bloqTitulo">Bloquear horarios</h2>
+        <p class="note" style="margin:0">Vacaciones, feriados o un barbero que falta. Esos horarios no se pueden reservar.</p>
+      </div>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <ul class="bloq-lista" id="listaBloqueos"></ul>
+    <form id="formBloqueo" class="form staff__form" novalidate>
+      <h3>Nuevo bloqueo</h3>
+      <div class="grid-2">
+        <label class="field" style="grid-column:1/-1"><span>¿Quién?</span><select name="barbero_id" class="select"></select></label>
+        <label class="field"><span>Desde</span><input name="desde" type="date" required></label>
+        <label class="field"><span>Hasta</span><input name="hasta" type="date" required></label>
+      </div>
+      <label class="switch-row"><span class="switch"><input type="checkbox" name="todo_dia" checked><span></span></span><span>Todo el día</span></label>
+      <div class="grid-2" id="bloqHoras" hidden>
+        <label class="field"><span>De</span><input name="hora_desde" type="time" step="900"></label>
+        <label class="field"><span>A</span><input name="hora_hasta" type="time" step="900"></label>
+      </div>
+      <label class="field"><span>Motivo <small>(lo ven los clientes si cierra todo el local)</small></span>
+        <input name="motivo" maxlength="80" list="motivosBloqueo" autocomplete="off" placeholder="Ej: Vacaciones"></label>
+      <datalist id="motivosBloqueo"><option value="Vacaciones"><option value="Feriado"><option value="Enfermedad"><option value="Trámite personal"><option value="Curso de capacitación"></datalist>
+      <p class="form__error" id="bloqueoError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--sm" type="submit"><i data-lucide="calendar-off"></i>Bloquear</button>
+    </form>
+  </dialog>
+
+  <!-- CIERRE DE CAJA -->
+  <dialog class="modal modal--wide" id="modalCaja" aria-labelledby="cajaTitulo">
+    <div class="modal__head">
+      <div>
+        <h2 id="cajaTitulo">Caja del día</h2>
+        <p class="note" style="margin:0">Lo que entró y salió de la caja, para comparar con lo que hay.</p>
+      </div>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <div class="grid-2">
+      <label class="field"><span>Día</span><input type="date" id="cajaFecha"></label>
+      <label class="field"><span>Fondo inicial <small>(efectivo al abrir)</small></span><input type="number" id="cajaFondo" inputmode="numeric" min="0" step="1000" placeholder="0"></label>
+    </div>
+    <div id="cajaCuerpo"></div>
+    <div class="modal__actions">
+      <button class="btn btn--gold btn--sm" id="cajaImprimir"><i data-lucide="printer"></i>Imprimir cierre</button>
+    </div>
+  </dialog>
+
+  <!-- COMISIONES -->
+  <dialog class="modal modal--xl" id="modalComisiones" aria-labelledby="comTitulo">
+    <div class="modal__head">
+      <div>
+        <h2 id="comTitulo">Comisiones</h2>
+        <p class="note" style="margin:0" id="comSub"></p>
+      </div>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <div id="comCuerpo"></div>
+    <div class="modal__actions">
+      <button class="btn btn--gold btn--sm" id="comImprimir"><i data-lucide="printer"></i>Imprimir liquidación</button>
+    </div>
+  </dialog>
+
+  <!-- PROVEEDORES -->
+  <dialog class="modal modal--wide" id="modalProveedores" aria-labelledby="provTitulo">
+    <div class="modal__head">
+      <div>
+        <h2 id="provTitulo">Proveedores</h2>
+        <p class="note" style="margin:0" id="provResumen"></p>
+      </div>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <ul class="staff" id="listaProveedores"></ul>
+    <form id="formProveedor" class="form staff__form" novalidate>
+      <h3 id="provFormTitulo">Agregar proveedor</h3>
+      <input type="hidden" name="id">
+      <div class="grid-2">
+        <label class="field"><span>Nombre</span><input name="nombre" required minlength="2" maxlength="80" autocomplete="off" placeholder="Ej: Distribuidora Capilar S.A."></label>
+        <label class="field"><span>RUC <small>(opcional)</small></span><input name="ruc" maxlength="12" autocomplete="off" placeholder="Ej: 80012345-6"></label>
+        <label class="field"><span>Teléfono / WhatsApp</span><input name="telefono" type="tel" maxlength="30" autocomplete="off" placeholder="Ej: 0981 123 456"></label>
+        <label class="field"><span>Contacto <small>(opcional)</small></span><input name="contacto" maxlength="80" autocomplete="off" placeholder="Ej: Marcos (vendedor)"></label>
+      </div>
+      <label class="field"><span>Nota <small>(opcional)</small></span><input name="nota" maxlength="300" autocomplete="off" placeholder="Ej: entrega los martes, pedido mínimo 500.000"></label>
+      <p class="form__error" id="proveedorError" role="alert" hidden></p>
+      <div class="staff__formbtns">
+        <button class="btn btn--gold btn--sm" type="submit" id="btnGuardarProveedor"><i data-lucide="plus"></i>Agregar</button>
+        <button class="btn btn--text btn--sm" type="button" id="btnCancelarProveedor" hidden>Cancelar edición</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- CLIENTE -->
+  <dialog class="modal modal--wide" id="modalCliente" aria-labelledby="cliTitulo">
+    <div class="modal__head">
+      <div>
+        <h2 id="cliTitulo">Cliente</h2>
+        <p class="note" style="margin:0" id="cliSub"></p>
+      </div>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <div id="cliResumen"></div>
+    <form id="formCliente" class="form" novalidate>
+      <input type="hidden" name="id">
+      <div class="grid-2">
+        <label class="field"><span>Nombre</span><input name="nombre" required minlength="2" maxlength="100" autocomplete="off"></label>
+        <label class="field"><span>Celular</span><input name="telefono" type="tel" maxlength="30" autocomplete="off" placeholder="Ej: 0981 123 456"></label>
+        <label class="field"><span>RUC o cédula <small>(para la factura)</small></span><input name="ruc" maxlength="12" autocomplete="off" placeholder="Ej: 1234567-8"></label>
+        <label class="field"><span>Nota <small>(preferencias, alergias…)</small></span><input name="nota" maxlength="300" autocomplete="off" placeholder="Ej: degradé bajo, número 2"></label>
+      </div>
+      <p class="form__error" id="clienteError" role="alert" hidden></p>
+      <div class="modal__actions" style="margin-top:0">
+        <button class="btn btn--gold btn--sm" type="submit"><i data-lucide="save"></i><span id="cliGuardarTxt">Guardar</span></button>
+        <a class="btn btn--ghost btn--sm" id="cliWa" target="_blank" rel="noopener" hidden><i data-lucide="message-circle"></i>WhatsApp</a>
+        <button class="btn btn--ghost btn--sm" type="button" id="cliNuevoTurno" hidden><i data-lucide="calendar-plus"></i>Nuevo turno</button>
+        <button class="btn btn--ghost btn--sm" type="button" id="cliNuevaVenta" hidden><i data-lucide="receipt"></i>Nueva venta</button>
+      </div>
+    </form>
+    <div id="cliHistorial"></div>
+  </dialog>
+
+  <div id="impresion" aria-hidden="true"></div>
+
   <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
+  <script src="js/db-oracle.js"></script>
   <script src="js/db.js"></script>
+  <script src="js/gestion.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

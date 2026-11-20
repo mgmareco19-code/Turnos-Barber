@@ -1,36 +1,31 @@
 /* ============================================================
-   CONFIGURACIÓN DEL NEGOCIO
-   Editá estos valores para adaptar el sistema a cada barbería.
+   CONFIGURACIÓN DE LA PLATAFORMA
+   Los datos de cada barbería (nombre, WhatsApp, horario…) ya no van
+   acá: cada dueño los edita desde su panel → Configuración.
    ============================================================ */
 window.APP_CONFIG = {
-  negocio: {
-    nombre: "Black Label",
-    nombreCompleto: "Black Label Barber Club",
-    whatsapp: "595981000000",          // sin "+" ni espacios
-    direccion: "Av. Mcal. López 1234, Asunción",
+  plataforma: {
+    nombre: "Turnos Barber",        // tu marca (se ve en el panel superadmin)
+    soporteWhatsapp: "595981000000", // a dónde te escriben los dueños (sin "+")
   },
 
-  /* --- Base de datos online (Supabase) ---------------------
-     Dejalos vacíos para usar el MODO DEMO (datos en el navegador).
-     Los encontrás en Supabase > Project Settings > API.            */
-  supabaseUrl: "",
-  supabaseAnonKey: "",
+  /* --- Base de datos online (Oracle Autonomous Database) ------
+     URL de la API publicada con oracle/04_ords.sql, por ejemplo:
+     "https://abc123-turnos.adb.sa-saopaulo-1.oraclecloudapps.com/ords/turnos/api/rpc"
+     Vacío = MODO DEMO (los datos quedan solo en el navegador). */
+  apiUrl: "",
 
-  /* --- Horario de atención ---------------------------------
-     0 = domingo … 6 = sábado. null = cerrado.                      */
-  horario: {
-    0: null,
-    1: ["09:00", "20:00"],
-    2: ["09:00", "20:00"],
-    3: ["09:00", "20:00"],
-    4: ["09:00", "20:00"],
-    5: ["09:00", "20:00"],
-    6: ["08:00", "14:00"],
-  },
-  intervalo: 30,          // minutos entre cada horario ofrecido
-  diasAnticipacion: 21,   // hasta cuántos días adelante se puede reservar
-  margenMinutos: 30,      // no ofrecer horarios que empiezan en menos de X min
+  /* Días que un local sigue recibiendo reservas después de vencido el abono */
+  diasGracia: 5,
 
-  /* Solo para el modo demo (en modo online se usa email + contraseña) */
-  demoAdminPassword: "admin",
+  /* Precio del abono por mes (Gs.). A cada local le podés poner otro precio desde el superadmin */
+  precioMensual: 55000,
+
+  /* Categorías de gastos del local (panel → Gastos) */
+  categoriasGasto: ["Alquiler", "Luz (ANDE)", "Agua", "Internet y teléfono", "Sueldos y comisiones", "Mantenimiento",
+    "Limpieza", "Publicidad", "Impuestos", "Contador", "Otros"],
+
+  /* Solo para el modo demo */
+  demoPasswordDueno: "admin",
+  demoPasswordSuper: "super",
 };

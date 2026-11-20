@@ -1,6 +1,7 @@
 /* Panel de administración: agenda, estados y carga manual */
 (() => {
   const cfg = window.APP_CONFIG;
+  const N = U.neg; // el local del dueño (se carga al iniciar sesión)
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
@@ -18,25 +19,71 @@
 
   /* ---------- Sesión ---------- */
   async function arrancar() {
-    const demo = DB.modo === "demo";
-    $("#campoEmail").hidden = demo;
-    $("#loginHint").hidden = !demo;
-    if (await DB.esAdmin()) mostrarPanel(); else mostrarLogin();
+    $("#loginLogo").innerHTML = U.logoHtml(cfg.plataforma.nombre);
+    if (DB.modo === "demo") {
+      const pw = U.esc(cfg.demoPasswordDueno);
+      $("#loginHint").hidden = false;
+      $("#loginHint").innerHTML = `<b>Modo demo</b> · contraseña <b>${pw}</b>. Tocá un local para completar:
+        ${["dueno@blacklabel.demo", "dueno@elpatron.demo", "dueno@studio21.demo"].map((e) =>
+          `<button type="button" class="chip" data-demo="${e}">${e}</button>`).join("")}`;
+    }
+    if (await DB.miNegocio()) mostrarPanel(); else mostrarLogin();
   }
+  $("#loginHint").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-demo]"); if (!b) return;
+    const f = $("#formLogin"); f.email.value = b.dataset.demo; f.password.value = cfg.demoPasswordDueno; f.password.focus();
+  });
   function mostrarLogin() {
     $("#vistaPanel").hidden = true; $("#vistaLogin").hidden = false;
+    document.title = "Panel de turnos";
+    U.setFavicon(null);
     clearInterval(timer); U.icons();
-    $(DB.modo === "demo" ? "[name=password]" : "[name=email]", $("#formLogin")).focus();
+    const f = $("#formLogin"), u = new URLSearchParams(location.search).get("u");
+    if (u && !f.email.value) f.email.value = u; // link de acceso del staff: usuario precargado
+    $(u ? "[name=password]" : "[name=email]", f).focus();
+  }
+  /** Muestra en el panel los datos del local (nombre, link, aviso del abono) */
+  function aplicarNegocio(n) {
+    U.setNegocio(n);
+    document.title = `Panel | ${n.nombre}`;
+    $("#logoLink").innerHTML = U.marcaHtml(n);
+    U.setFavicon(n.logo);
+    U.icons();
+    // el logo del panel lleva siempre a la Agenda (la página de reservas se abre desde Configuración)
+    const e = n.estado, box = $("#abonoAviso");
+    const soporte = U.waLink(cfg.plataforma.soporteWhatsapp, `Hola, quiero renovar el abono de ${n.nombre} (${n.slug}).`);
+    const msg = {
+      por_vencer: `Tu abono ${e.txt.toLowerCase()} (${U.fechaLarga(n.vence_el)}). Renovalo para no cortar las reservas online.`,
+      gracia: `Tu abono venció el ${U.fechaLarga(n.vence_el)}. Las reservas online siguen activas unos días más: renovalo para no cortarlas.`,
+      vencido: `Tu abono venció el ${U.fechaLarga(n.vence_el)} y <b>las reservas online están pausadas</b>. El panel sigue funcionando.`,
+      suspendido: `Las <b>reservas online de tu local están pausadas</b>. El panel sigue funcionando.`,
+    }[e.clave];
+    box.hidden = !msg;
+    if (msg) {
+      box.className = `abono abono--${e.reserva ? "warn" : "danger"}`;
+      box.innerHTML = `<i data-lucide="${e.reserva ? "clock-alert" : "pause-circle"}"></i><span>${msg}</span>
+        <a class="btn btn--sm ${e.reserva ? "btn--ghost" : "btn--gold"}" href="${soporte}" target="_blank" rel="noopener"><i data-lucide="message-circle"></i>Renovar</a>`;
+    }
+    if (!n.whatsapp && !msg) {
+      box.hidden = false; box.className = "abono abono--info";
+      box.innerHTML = `<i data-lucide="info"></i><span>Completá el WhatsApp y la dirección de tu local para que aparezcan en la página de reservas.</span>
+        <button class="btn btn--sm btn--ghost" data-abrir-config><i data-lucide="settings"></i>Configurar</button>`;
+    }
   }
   async function mostrarPanel() {
+    const n = await DB.miNegocio();
+    if (!n) return mostrarLogin();
+    aplicarNegocio(n);
     $("#vistaLogin").hidden = true; $("#vistaPanel").hidden = false;
     $("#modoBadge").textContent = DB.modo === "demo" ? "Modo demo" : "En línea";
     $("#modoBadge").className = "badge " + (DB.modo === "demo" ? "badge--warn" : "badge--ok");
+    st.fecha = U.hoy(); st.barbero = "";
     try {
       [st.servicios, st.barberos] = await Promise.all([DB.servicios(true), DB.barberos(true)]);
     } catch (e) { U.toast(e.message, "error"); }
     renderFiltro(); contarServicios();
     await cargar();
+    Gestion.entrar();
     clearInterval(timer);
     timer = setInterval(() => { if (!document.hidden && !$("dialog[open]")) cargar(true); }, 60000);
   }
@@ -59,7 +106,7 @@
     $("#diaInput").value = st.fecha;
     if (!silencioso) $("#agenda").classList.add("is-loading");
     try {
-      st.turnos = await DB.turnos(st.fecha, st.fecha);
+      [st.turnos, st.bloqueos] = await Promise.all([DB.turnos(st.fecha, st.fecha), DB.bloqueos(st.fecha, st.fecha).catch(() => [])]);
       render();
     } catch (e) { U.toast(e.message, "error"); }
     finally { $("#agenda").classList.remove("is-loading"); }
@@ -98,9 +145,9 @@
     const ts = visibles().filter((t) => t.estado !== "cancelado");
     let abre = U.toMin(h[0]), cierra = U.toMin(h[1]);
     ts.forEach((t) => { abre = Math.min(abre, U.toMin(t.hora)); cierra = Math.max(cierra, U.toMin(t.hora) + t.duracion); });
-    abre = Math.floor(abre / cfg.intervalo) * cfg.intervalo;
+    abre = Math.floor(abre / N.intervalo) * N.intervalo;
     st.abre = abre;
-    const filas = Math.ceil((cierra - abre) / cfg.intervalo);
+    const filas = Math.ceil((cierra - abre) / N.intervalo);
     // Columnas: barberos activos + inactivos que igual tengan turnos ese día
     const cols = st.barberos.filter((b) => (b.activo || ts.some((t) => t.barbero_id === b.id)) &&
       (!st.barbero || b.id === Number(st.barbero)));
@@ -108,25 +155,34 @@
       $("#agenda").innerHTML = `<p class="empty"><i data-lucide="users"></i>No hay barberos activos. Agregalos desde el botón <b>Barberos</b>.</p>`;
       return;
     }
-    const px = (min) => ((min - abre) / cfg.intervalo) * ROW_H;
+    const px = (min) => ((min - abre) / N.intervalo) * ROW_H;
 
-    const horas = Array.from({ length: filas }, (_, i) => `<span style="top:${i * ROW_H}px">${U.fromMin(abre + i * cfg.intervalo)}</span>`).join("");
+    const horas = Array.from({ length: filas }, (_, i) => `<span style="top:${i * ROW_H}px">${U.fromMin(abre + i * N.intervalo)}</span>`).join("");
     const ahora = new Date(), minAhora = ahora.getHours() * 60 + ahora.getMinutes();
-    const lineaAhora = st.fecha === U.hoy() && minAhora >= abre && minAhora <= abre + filas * cfg.intervalo
+    const lineaAhora = st.fecha === U.hoy() && minAhora >= abre && minAhora <= abre + filas * N.intervalo
       ? `<div class="now" style="top:${px(minAhora)}px"></div>` : "";
 
+    // Bloqueos del día dentro de lo que se ve de la agenda
+    const finAgenda = abre + filas * N.intervalo;
+    const bloqDe = (b) => (st.bloqueos || []).filter((k) => k.barbero_id == null || k.barbero_id === b.id).map((k) => {
+      const ini = Math.max(abre, k.hora_desde ? U.toMin(k.hora_desde) : abre), fin = Math.min(finAgenda, k.hora_hasta ? U.toMin(k.hora_hasta) : finAgenda);
+      return fin > ini ? `<div class="bloq" data-bloq style="top:${px(ini)}px;height:${px(fin) - px(ini) - 4}px"
+        title="Bloqueado${k.motivo ? ": " + U.esc(k.motivo) : ""}"><i data-lucide="ban"></i><span>${U.esc(k.motivo || "Bloqueado")}${k.hora_desde ? ` · ${k.hora_desde}–${k.hora_hasta}` : ""}</span></div>` : "";
+    }).join("");
+    const cierre = U.cierreDe(st.fecha);
     $("#agenda").innerHTML = `
-      ${!U.horarioDe(st.fecha) ? '<p class="agenda__closed"><i data-lucide="moon"></i>Día cerrado según el horario configurado</p>' : ""}
+      ${cierre ? `<p class="agenda__closed"><i data-lucide="calendar-off"></i>Local cerrado${cierre.motivo ? `: ${U.esc(cierre.motivo)}` : ""} · no se toman reservas</p>`
+        : !U.horarioDe(st.fecha) ? '<p class="agenda__closed"><i data-lucide="moon"></i>Día cerrado según el horario configurado</p>' : ""}
       <div class="agenda__scroll">
         <div class="agenda__grid" style="--cols:${cols.length};--h:${filas * ROW_H}px;--row:${ROW_H}px">
           <div class="agenda__corner"></div>
           ${cols.map((b) => `<div class="agenda__barber">${U.esc(b.nombre)}<small>${((n) => n + (n === 1 ? " turno" : " turnos"))(ts.filter((t) => t.barbero_id === b.id).length)}</small></div>`).join("")}
           <div class="agenda__hours">${horas}</div>
-          ${cols.map((b) => `<div class="agenda__col" data-barbero="${b.id}">${lineaAhora}
+          ${cols.map((b) => `<div class="agenda__col" data-barbero="${b.id}">${lineaAhora}${bloqDe(b)}
             ${ts.filter((t) => t.barbero_id === b.id).map((t) => `
-              <button class="appt appt--${t.estado} ${(t.duracion / cfg.intervalo) * ROW_H < 80 ? "appt--corto" : ""}" data-id="${t.id}"
+              <button class="appt appt--${t.estado} ${(t.duracion / N.intervalo) * ROW_H < 80 ? "appt--corto" : ""}" data-id="${t.id}"
                 title="${t.hora} · ${U.esc(t.cliente_nombre)} — ${U.esc(t.servicio?.nombre || "")} (${ESTADOS[t.estado].txt})"
-                style="top:${px(U.toMin(t.hora))}px;height:${(t.duracion / cfg.intervalo) * ROW_H - 4}px">
+                style="top:${px(U.toMin(t.hora))}px;height:${(t.duracion / N.intervalo) * ROW_H - 4}px">
                 <strong>${t.hora} · ${U.esc(t.cliente_nombre)}</strong>
                 <span>${U.esc(t.servicio?.nombre || "")}</span>
                 <em><i data-lucide="${ESTADOS[t.estado].icon}"></i>${ESTADOS[t.estado].txt}</em>
@@ -137,10 +193,11 @@
   }
   $("#agenda").addEventListener("click", (e) => {
     const b = e.target.closest(".appt"); if (b) return abrirDetalle(b.dataset.id);
+    if (e.target.closest("[data-bloq]")) return abrirBloqueos();
     const col = e.target.closest(".agenda__col"); if (!col) return;
     // clic en un hueco vacío -> nuevo turno precargado con ese barbero y hora
     const y = e.clientY - col.getBoundingClientRect().top;
-    const min = st.abre + Math.floor(y / ROW_H) * cfg.intervalo;
+    const min = st.abre + Math.floor(y / ROW_H) * N.intervalo;
     abrirNuevo({ barbero_id: Number(col.dataset.barbero), hora: U.fromMin(min) });
   });
 
@@ -153,7 +210,7 @@
         <tbody>${ts.map((t) => `
           <tr class="${t.estado === "cancelado" ? "is-cancel" : ""}">
             <td data-l="Hora"><strong>${t.hora}</strong> <small>${U.durTxt(t.duracion)}</small></td>
-            <td data-l="Cliente">${U.esc(t.cliente_nombre)}<small>${U.esc(t.cliente_telefono)}</small></td>
+            <td data-l="Cliente">${U.esc(t.cliente_nombre)}<small>${U.esc(t.cliente_telefono)}</small>${tagCliente(t)}</td>
             <td data-l="Servicio">${U.esc(t.servicio?.nombre || "")}<small>${U.gs(t.servicio?.precio)}</small></td>
             <td data-l="Barbero">${U.esc(t.barbero?.nombre || "")}</td>
             <td data-l="Estado"><select class="select select--sm estado estado--${t.estado}" data-id="${t.id}" aria-label="Estado">
@@ -174,9 +231,25 @@
   });
 
   /* ---------- Detalle ---------- */
-  const waCliente = (t) => U.waLink(t.cliente_telefono,
-    `Hola ${t.cliente_nombre.split(" ")[0]}! Te recordamos tu turno en ${cfg.negocio.nombreCompleto}: ` +
-    `${t.servicio?.nombre || ""} el ${U.fechaLarga(t.fecha)} a las ${t.hora} hs con ${t.barbero?.nombre || ""}. ¿Nos confirmás?`);
+  /** Recordatorio para el cliente, con el link de su turno (desde ahí lo ve, lo cambia o lo cancela) */
+  function mensajeRecordatorio(t) {
+    const dif = U.diasEntre(U.hoy(), t.fecha);
+    const cuando = (dif === 0 ? "Hoy, " : dif === 1 ? "Mañana, " : "El ") + U.fechaLarga(t.fecha);
+    return [
+      `Hola ${t.cliente_nombre.trim().split(/\s+/)[0]}! Te recordamos tu turno en ${N.nombre}:`,
+      `📅 ${cuando} a las ${t.hora} hs`,
+      `✂️ ${t.servicio?.nombre || ""}${t.barbero?.nombre ? ` con ${t.barbero.nombre}` : ""}`,
+      N.direccion ? `📍 ${N.direccion}` : null,
+      "",
+      "¿Nos confirmás si venís? Si necesitás cambiar o cancelar el turno, podés hacerlo acá:",
+      U.linkTurno(N.slug, t.id),
+    ].filter((l) => l !== null).join("\n");
+  }
+  const waCliente = (t) => U.waLink(t.cliente_telefono, mensajeRecordatorio(t));
+  /** Lo que hizo el cliente desde su link (cambiarlo o cancelarlo) */
+  const tagCliente = (t) => t.estado === "cancelado" && t.cancelado_por === "cliente"
+    ? `<small class="cliente-tag"><i data-lucide="user-x"></i>Lo canceló el cliente</small>`
+    : t.cambios ? `<small class="cliente-tag"><i data-lucide="calendar-clock"></i>El cliente lo cambió</small>` : "";
 
   function abrirDetalle(id) {
     const t = st.turnos.find((x) => x.id === id); if (!t) return;
@@ -199,28 +272,43 @@
         <div><dt><i data-lucide="phone"></i>Celular</dt><dd><a href="tel:${U.esc(t.cliente_telefono)}">${U.esc(t.cliente_telefono)}</a></dd></div>
         ${t.nota ? `<div><dt><i data-lucide="sticky-note"></i>Nota</dt><dd>${U.esc(t.nota)}</dd></div>` : ""}
         <div><dt><i data-lucide="hash"></i>Código</dt><dd>${U.esc(t.codigo)} · ${t.origen === "web" ? "reserva web" : "cargado en local"}</dd></div>
+        ${t.cambios ? `<div><dt><i data-lucide="calendar-clock"></i>Cambios</dt><dd>El cliente lo cambió de día u hora ${t.cambios === 1 ? "1 vez" : `${t.cambios} veces`}</dd></div>` : ""}
+        ${t.estado === "cancelado" && t.cancelado_por ? `<div><dt><i data-lucide="x-circle"></i>Cancelado por</dt><dd>${t.cancelado_por === "cliente" ? "El cliente, desde su link" : "El local"}</dd></div>` : ""}
+        ${t.cobro ? `<div><dt><i data-lucide="receipt"></i>Cobrado</dt><dd>${t.cobro.tipo === "factura" ? "Factura" : "Ticket"} ${U.esc(t.cobro.numero)}</dd></div>` : ""}
       </dl>
       <div class="modal__actions">
         <a class="btn btn--ghost btn--sm" href="${waCliente(t)}" target="_blank" rel="noopener"><i data-lucide="message-circle"></i>WhatsApp</a>
-        ${acciones.map(([e, txt, cls]) => `<button class="btn ${cls} btn--sm" data-estado="${e}">${txt}</button>`).join("")}
+        ${t.cobro ? `<button class="btn btn--ghost btn--sm" data-ver-cobro="${t.cobro.id}"><i data-lucide="receipt"></i>Ver comprobante</button>`
+          : t.estado === "completado" ? `<button class="btn btn--gold btn--sm" data-cobrar><i data-lucide="wallet"></i>Cobrar</button>` : ""}
+        ${acciones.filter(([e]) => !(t.cobro && t.estado === "completado" && e === "confirmado"))
+          .map(([e, txt, cls]) => `<button class="btn ${cls} btn--sm" data-estado="${e}">${txt}</button>`).join("")}
       </div>`;
     $("#detCuerpo").dataset.id = id;
     U.icons();
     $("#modalDetalle").showModal();
   }
   $("#detCuerpo").addEventListener("click", async (e) => {
+    const t = st.turnos.find((x) => x.id === $("#detCuerpo").dataset.id);
+    const ver = e.target.closest("[data-ver-cobro]");
+    if (ver) { $("#modalDetalle").close(); return Gestion.verVentaId(ver.dataset.verCobro); }
+    if (e.target.closest("[data-cobrar]")) { $("#modalDetalle").close(); return Gestion.cobrarTurno(t); }
     const b = e.target.closest("[data-estado]"); if (!b) return;
     if (b.dataset.estado === "cancelado" && !confirm("¿Cancelar este turno? El horario queda libre.")) return;
-    await cambiarEstado($("#detCuerpo").dataset.id, b.dataset.estado);
     $("#modalDetalle").close();
+    await cambiarEstado(t.id, b.dataset.estado);
   });
 
+  /** Cambia el estado; si quedó "atendido" y no está cobrado, abre «Cobrar» con sus servicios */
   async function cambiarEstado(id, estado) {
+    let ok = false;
     try {
       await DB.actualizarTurno(id, { estado });
       U.toast(`Turno: ${ESTADOS[estado].txt.toLowerCase()}`);
+      ok = true;
     } catch (e) { U.toast(e.message, "error"); }
     await cargar(true);
+    const t = st.turnos.find((x) => x.id === id);
+    if (ok && estado === "completado" && t && !t.cobro && !$("dialog[open]")) Gestion.cobrarTurno(t);
   }
 
   /* ---------- Nuevo turno ---------- */
@@ -238,10 +326,16 @@
     if (pre.barbero_id && activos().some((b) => b.id === pre.barbero_id)) fN.barbero_id.value = pre.barbero_id;
     else if (st.barbero && activos().some((b) => b.id === Number(st.barbero))) fN.barbero_id.value = st.barbero;
     fN.fecha.value = st.fecha;
+    if (pre.cliente) { fN.cliente_nombre.value = pre.cliente.nombre || ""; fN.cliente_telefono.value = pre.cliente.telefono || ""; }
+    Gestion.refrescarClientes();
     U.icons();
     $("#modalNuevo").showModal();
     horasNuevo(pre.hora);
   }
+  // Clientes que ya vinieron: al escribir el nombre o el celular, se completan los dos
+  const elegirClienteNuevo = (c) => { fN.cliente_nombre.value = c.nombre; if (c.telefono) fN.cliente_telefono.value = c.telefono; };
+  Gestion.autocompletar(fN.cliente_nombre, elegirClienteNuevo);
+  Gestion.autocompletar(fN.cliente_telefono, elegirClienteNuevo);
   const elegidosNuevo = () => $$("#nuevoServicios input:checked").map((c) => st.servicios.find((s) => s.id === Number(c.value))).filter(Boolean);
   function totalNuevo() {
     const el = elegidosNuevo();
@@ -289,6 +383,7 @@
       });
       $("#modalNuevo").close();
       U.toast("Turno guardado");
+      Gestion.refrescarClientes();
       if (d.fecha !== st.fecha) st.fecha = d.fecha;
       cargar();
     } catch (ex) { err.textContent = ex.message; err.hidden = false; }
@@ -306,7 +401,8 @@
     $("#listaStaff").innerHTML = st.barberos.map((b) => `
       <li class="staff__item ${b.activo ? "" : "is-off"}" data-id="${b.id}">
         <span class="avatar">${b.foto ? `<img src="${U.esc(b.foto)}" alt="">` : U.esc(iniciales(b.nombre))}</span>
-        <span class="staff__info"><strong>${U.esc(b.nombre)}</strong><small>${U.esc(b.especialidad || "Sin especialidad")}</small></span>
+        <span class="staff__info"><strong>${U.esc(b.nombre)}</strong><small>${U.esc(b.especialidad || "Sin especialidad")}</small>
+          <small>Comisión: ${b.comision || 0} % servicios · ${b.comision_prod || 0} % productos</small></span>
         <label class="switch" title="${b.activo ? "Activo: recibe reservas" : "Inactivo: no recibe reservas"}">
           <input type="checkbox" data-toggle ${b.activo ? "checked" : ""} aria-label="${U.esc(b.nombre)} activo"><span></span>
         </label>
@@ -335,6 +431,7 @@
     const b = st.barberos.find((x) => x.id === Number(li.dataset.id));
     if (e.target.closest("[data-editar]")) {
       fB.id.value = b.id; fB.nombre.value = b.nombre; fB.especialidad.value = b.especialidad || ""; fB.foto.value = b.foto || "";
+      fB.comision.value = b.comision ?? ""; fB.comision_prod.value = b.comision_prod ?? "";
       $("#formBarberoTitulo").textContent = `Editar a ${b.nombre}`;
       $("#btnGuardarBarbero").innerHTML = '<i data-lucide="save"></i>Guardar cambios';
       $("#btnCancelarEdicion").hidden = false; U.icons();
@@ -370,7 +467,12 @@
     const err = $("#barberoError"); err.hidden = true;
     if (!fB.checkValidity()) { err.textContent = "Ingresá un nombre (y una URL válida si cargás foto)."; err.hidden = false; return; }
     const id = Number(fB.id.value) || null;
-    const datos = { nombre: fB.nombre.value.trim(), especialidad: fB.especialidad.value.trim() || null, foto: fB.foto.value.trim() || null };
+    const pct = (v) => (v === "" ? 0 : Number(v));
+    const datos = { nombre: fB.nombre.value.trim(), especialidad: fB.especialidad.value.trim() || null, foto: fB.foto.value.trim() || null,
+      comision: pct(fB.comision.value), comision_prod: pct(fB.comision_prod.value) };
+    if (![datos.comision, datos.comision_prod].every((n) => Number.isInteger(n) && n >= 0 && n <= 100)) {
+      err.textContent = "La comisión es un porcentaje entero entre 0 y 100."; err.hidden = false; return;
+    }
     const btn = $("#btnGuardarBarbero"); btn.disabled = true;
     try {
       await DB.guardarBarbero(id ? { id, ...datos } : datos);
@@ -493,6 +595,108 @@
     finally { btn.disabled = false; }
   });
 
+  /* ---------- Configuración del local ---------- */
+  const fC = $("#formConfig");
+  const ORDEN_DIAS = [1, 2, 3, 4, 5, 6, 0]; // lunes primero
+  function horasOpciones(sel) {
+    const out = [];
+    for (let m = 5 * 60; m <= 24 * 60; m += 30) { const h = m === 1440 ? "23:59" : U.fromMin(m); out.push(`<option ${h === sel ? "selected" : ""}>${h}</option>`); }
+    return out.join("");
+  }
+  let logoCfg = null; // logo elegido en el modal (data URL) o null
+  function pintarLogoCfg() {
+    $("#cfgLogoPrev").innerHTML = logoCfg ? `<img src="${U.esc(logoCfg)}" alt="Logo del local">` : '<i data-lucide="image"></i><small>Sin logo</small>';
+    $("#cfgLogoQuitar").hidden = !logoCfg;
+    $("#cfgLogoTxt").textContent = logoCfg ? "Cambiar logo" : "Subir logo";
+    U.icons();
+  }
+  $("#cfgLogoFile").addEventListener("change", async (e) => {
+    const file = e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    try { logoCfg = await U.achicarImagen(file); pintarLogoCfg(); $("#configError").hidden = true; }
+    catch (ex) { $("#configError").textContent = ex.message; $("#configError").hidden = false; }
+  });
+  $("#cfgLogoQuitar").addEventListener("click", () => { logoCfg = null; pintarLogoCfg(); });
+
+  function abrirConfig() {
+    const n = N;
+    $("#configError").hidden = true;
+    $("#cfgClave").hidden = DB.modo === "demo"; fC.clave_nueva.value = ""; fC.clave_repetir.value = "";
+    logoCfg = n.logo || null; fC.logo_solo.checked = Boolean(n.logo_solo); pintarLogoCfg();
+    $("#cfgLink").value = U.linkReserva(n.slug);
+    $("#btnAbrirLink").href = U.linkReserva(n.slug);
+    ["nombre", "nombre_corto", "whatsapp", "direccion"].forEach((k) => (fC[k].value = n[k] || ""));
+    ["intervalo", "dias_anticipacion", "margen_minutos"].forEach((k) => {
+      const s = fC[k];
+      if (![...s.options].some((o) => Number(o.value) === n[k])) s.add(new Option(String(n[k]), n[k]));
+      s.value = String(n[k]);
+    });
+    $("#cfgHorario").innerHTML = ORDEN_DIAS.map((d) => {
+      const h = (n.horario || {})[d];
+      return `<div class="horario__dia ${h ? "" : "is-off"}" data-dia="${d}">
+        <label class="switch" title="Abierto"><input type="checkbox" data-abierto ${h ? "checked" : ""} aria-label="Abierto el ${U.DIAS_LARGO[d]}"><span></span></label>
+        <strong>${U.DIAS_LARGO[d]}</strong>
+        <span class="horario__horas">
+          <select class="select select--sm" data-desde aria-label="${U.DIAS_LARGO[d]}: abre">${horasOpciones(h?.[0] || "09:00")}</select>
+          <span class="muted">a</span>
+          <select class="select select--sm" data-hasta aria-label="${U.DIAS_LARGO[d]}: cierra">${horasOpciones(h?.[1] || "20:00")}</select>
+        </span>
+        <em class="horario__cerrado">Cerrado</em>
+      </div>`;
+    }).join("");
+    const e = n.estado;
+    $("#cfgAbono").innerHTML = `<i data-lucide="badge-check"></i><span><b>Abono:</b> <span class="estado-neg estado-neg--${e.clave}">${e.txt}</span>` +
+      (n.vence_el ? ` · vence el ${U.fechaLarga(n.vence_el)}` : "") + `</span>`;
+    U.icons();
+    $("#modalConfig").showModal();
+  }
+  $("#cfgHorario").addEventListener("change", (e) => {
+    const fila = e.target.closest(".horario__dia");
+    if (e.target.matches("[data-abierto]")) fila.classList.toggle("is-off", !e.target.checked);
+  });
+  $("#btnCopiarLink").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText($("#cfgLink").value); U.toast("Link copiado"); }
+    catch (e) { $("#cfgLink").select(); document.execCommand?.("copy"); U.toast("Link copiado"); }
+  });
+  $("#btnConfig").addEventListener("click", abrirConfig);
+  $("#abonoAviso").addEventListener("click", (e) => { if (e.target.closest("[data-abrir-config]")) abrirConfig(); });
+
+  fC.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = $("#configError"); err.hidden = true;
+    const fallo = (m) => { err.textContent = m; err.hidden = false; };
+    if (!fC.checkValidity()) return fallo("Revisá el nombre y que el WhatsApp sea un número válido.");
+    const horario = {};
+    for (const fila of $$("#cfgHorario .horario__dia")) {
+      const d = Number(fila.dataset.dia);
+      if (!$("[data-abierto]", fila).checked) { horario[d] = null; continue; }
+      const a = $("[data-desde]", fila).value, b = $("[data-hasta]", fila).value;
+      if (U.toMin(b) <= U.toMin(a)) return fallo(`El ${U.DIAS_LARGO[d]} la hora de cierre tiene que ser después de la de apertura.`);
+      horario[d] = [a, b];
+    }
+    if (!Object.values(horario).some(Boolean)) return fallo("Marcá al menos un día abierto.");
+    const clave = DB.modo === "demo" ? "" : fC.clave_nueva.value;
+    if (clave && clave.length < 8) return fallo("La contraseña nueva tiene que tener al menos 8 caracteres.");
+    if (clave !== (DB.modo === "demo" ? "" : fC.clave_repetir.value)) return fallo("Las dos contraseñas no coinciden.");
+    const wa = fC.whatsapp.value.trim();
+    const datos = {
+      nombre: fC.nombre.value.trim(), nombre_corto: fC.nombre_corto.value.trim() || null,
+      logo: logoCfg, logo_solo: Boolean(logoCfg && fC.logo_solo.checked),
+      whatsapp: wa ? U.telWa(wa) : "", direccion: fC.direccion.value.trim(), horario,
+      intervalo: Number(fC.intervalo.value), dias_anticipacion: Number(fC.dias_anticipacion.value), margen_minutos: Number(fC.margen_minutos.value),
+    };
+    const btn = $("button[type=submit]", fC); btn.disabled = true;
+    try {
+      const n = await DB.guardarNegocio(datos);
+      aplicarNegocio({ ...N, ...n });
+      if (clave) await DB.cambiarClave(clave);
+      $("#modalConfig").close();
+      U.toast(clave ? "Configuración y contraseña guardadas" : "Configuración guardada");
+      render(); U.icons();
+    } catch (ex) { fallo(ex.message); }
+    finally { btn.disabled = false; }
+  });
+
   /* ---------- Controles ---------- */
   const irDia = (f) => { st.fecha = f; cargar(); };
   $("#diaPrev").addEventListener("click", () => irDia(U.addDays(st.fecha, -1)));
@@ -500,11 +704,149 @@
   $("#diaHoy").addEventListener("click", () => irDia(U.hoy()));
   $("#diaInput").addEventListener("change", (e) => e.target.value && irDia(e.target.value));
   $("#filtroBarbero").addEventListener("change", (e) => { st.barbero = e.target.value; render(); });
-  $$(".segmented button").forEach((b) => b.addEventListener("click", () => {
+  $$(".segmented button[data-vista]").forEach((b) => b.addEventListener("click", () => {
     st.vista = b.dataset.vista;
-    $$(".segmented button").forEach((x) => x.setAttribute("aria-selected", x === b));
+    $$(".segmented button[data-vista]").forEach((x) => x.setAttribute("aria-selected", x === b));
     $("#agenda").hidden = st.vista !== "agenda"; $("#lista").hidden = st.vista !== "lista";
   }));
+  Gestion.iniciar({ servicios: () => st.servicios, barberos: () => st.barberos, turnosCambiaron: () => cargar(true),
+    nuevoTurno: (pre) => { Gestion.irModulo("agenda"); abrirNuevo(pre); } });
+
+  /* ---------- Bloqueos de horarios (vacaciones, feriados, un barbero que falta) ---------- */
+  const fBl = $("#formBloqueo");
+  let bloqueos = [];
+  async function abrirBloqueos() {
+    fBl.reset(); $("#bloqueoError").hidden = true;
+    fBl.barbero_id.innerHTML = '<option value="">Todo el local (cierra)</option>' +
+      activos().map((b) => `<option value="${b.id}">${U.esc(b.nombre)}</option>`).join("");
+    fBl.desde.min = fBl.hasta.min = U.hoy();
+    fBl.desde.value = fBl.hasta.value = st.fecha >= U.hoy() ? st.fecha : U.hoy();
+    horasBloqueo();
+    $("#listaBloqueos").innerHTML = '<li class="skeleton"></li>';
+    U.icons();
+    if (!$("#modalBloqueos").open) $("#modalBloqueos").showModal();
+    await cargarBloqueos();
+  }
+  async function cargarBloqueos() {
+    try { bloqueos = await DB.bloqueos(); } catch (e) { $("#listaBloqueos").innerHTML = `<li class="empty">${U.esc(e.message)}</li>`; return; }
+    const fecha = (k) => (k.desde === k.hasta ? U.fechaLarga(k.desde) : `${U.fechaLarga(k.desde)} al ${U.fechaLarga(k.hasta)}`);
+    $("#listaBloqueos").innerHTML = bloqueos.map((k) => `
+      <li class="bloq-item">
+        <span class="bloq-item__icon ${k.barbero_id ? "" : "is-local"}"><i data-lucide="${k.barbero_id ? "user-x" : "store"}"></i></span>
+        <span class="bloq-item__info"><strong>${k.barbero_id ? U.esc(k.barbero_nombre || "Barbero") : "Todo el local"}${k.motivo ? ` · ${U.esc(k.motivo)}` : ""}</strong>
+          <small>${fecha(k)} · ${k.hora_desde ? `${k.hora_desde} a ${k.hora_hasta}` : "todo el día"}</small></span>
+        <button class="icon-btn icon-btn--danger" data-quitar-bloq="${k.id}" aria-label="Quitar bloqueo"><i data-lucide="trash-2"></i></button>
+      </li>`).join("") || `<li class="note">No hay bloqueos próximos. Los horarios se toman del horario semanal del local.</li>`;
+    U.icons();
+  }
+  const horasBloqueo = () => {
+    const todo = fBl.todo_dia.checked;
+    $("#bloqHoras").hidden = todo;
+    fBl.hora_desde.required = fBl.hora_hasta.required = !todo;
+  };
+  fBl.todo_dia.addEventListener("change", horasBloqueo);
+  fBl.desde.addEventListener("change", () => { if (fBl.hasta.value < fBl.desde.value) fBl.hasta.value = fBl.desde.value; });
+  $("#btnBloqueos").addEventListener("click", abrirBloqueos);
+  /** Los días cerrados del local viven en los datos del negocio: se vuelven a leer */
+  async function bloqueosCambiaron() {
+    try { const n = await DB.miNegocio(); if (n) U.setNegocio({ ...N, ...n }); } catch (e) { /* se ve al recargar */ }
+    await cargarBloqueos(); cargar(true);
+  }
+  $("#listaBloqueos").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-quitar-bloq]"); if (!b) return;
+    if (!confirm("¿Quitar este bloqueo? Esos horarios vuelven a estar disponibles para reservar.")) return;
+    try { await DB.eliminarBloqueo(Number(b.dataset.quitarBloq)); U.toast("Bloqueo quitado"); await bloqueosCambiaron(); }
+    catch (ex) { U.toast(ex.message, "error"); }
+  });
+  fBl.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = $("#bloqueoError"); err.hidden = true;
+    const todo = fBl.todo_dia.checked;
+    if (!fBl.desde.value || !fBl.hasta.value) { err.textContent = "Elegí desde y hasta qué día."; err.hidden = false; return; }
+    if (!todo && (!fBl.hora_desde.value || !fBl.hora_hasta.value)) { err.textContent = "Poné la hora de inicio y la de fin, o marcá «Todo el día»."; err.hidden = false; return; }
+    const btn = $("button[type=submit]", fBl); btn.disabled = true;
+    try {
+      const r = await DB.guardarBloqueo({ barbero_id: Number(fBl.barbero_id.value) || null, desde: fBl.desde.value, hasta: fBl.hasta.value,
+        hora_desde: todo ? null : fBl.hora_desde.value, hora_hasta: todo ? null : fBl.hora_hasta.value, motivo: fBl.motivo.value.trim() || null });
+      U.toast("Horario bloqueado");
+      if (r.turnos) alert(`Ojo: hay ${r.turnos} turno${r.turnos === 1 ? "" : "s"} reservado${r.turnos === 1 ? "" : "s"} en ese horario. ` +
+        "No se cancelan solos: avisales a los clientes y cancelalos o cambialos desde la agenda.");
+      fBl.motivo.value = "";
+      await bloqueosCambiaron();
+    } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+    finally { btn.disabled = false; }
+  });
+  // Logo: vuelve siempre a la Agenda (pantalla principal) sin recargar
+  $("#logoLink").addEventListener("click", (e) => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return; // abrir en otra pestaña sigue funcionando
+    e.preventDefault();
+    Gestion.irModulo("agenda");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  /* ---------- Recordatorios por WhatsApp ----------
+     wa.me no permite mandar en masa: se abre un chat por cliente con el mensaje listo.
+     Los ya enviados se marcan en este navegador (si el turno cambia de hora, vuelve a quedar sin enviar). */
+  const REC_KEY = "tb_recordatorios";
+  const rec = { dia: 1, turnos: [] };
+  const recLeer = () => { try { return JSON.parse(localStorage.getItem(REC_KEY)) || {}; } catch (e) { return {}; } };
+  const recEnviado = (m, t) => Boolean(m[t.id] && m[t.id].f === t.fecha && m[t.id].h === t.hora);
+  function recMarcar(t) {
+    const m = recLeer(), viejo = U.addDays(U.hoy(), -3);
+    Object.keys(m).forEach((k) => { if (!m[k] || m[k].f < viejo) delete m[k]; });
+    m[t.id] = { f: t.fecha, h: t.hora };
+    try { localStorage.setItem(REC_KEY, JSON.stringify(m)); } catch (e) { /* sin storage: no queda marcado */ }
+  }
+  async function cargarRec() {
+    const fecha = U.addDays(U.hoy(), rec.dia);
+    $$("[data-rec-dia]").forEach((b) => b.setAttribute("aria-selected", String(Number(b.dataset.recDia) === rec.dia)));
+    $("#recTitulo").textContent = `Recordatorios · ${rec.dia ? "mañana" : "hoy"}`;
+    $("#recResumen").textContent = "";
+    $("#recLista").innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
+    try {
+      const ahora = new Date(), min = ahora.getHours() * 60 + ahora.getMinutes();
+      rec.turnos = (await DB.turnos(fecha, fecha))
+        .filter((t) => ["pendiente", "confirmado"].includes(t.estado) && (rec.dia || U.toMin(t.hora) >= min));
+    } catch (e) {
+      rec.turnos = [];
+      $("#recLista").innerHTML = `<p class="empty"><i data-lucide="wifi-off"></i>${U.esc(e.message)}</p>`;
+      return U.icons();
+    }
+    renderRec();
+  }
+  function renderRec() {
+    const m = recLeer(), fecha = U.addDays(U.hoy(), rec.dia), ts = rec.turnos;
+    const listos = ts.filter((t) => recEnviado(m, t)).length;
+    $("#recResumen").textContent = ts.length ? `${listos} de ${ts.length} enviado${ts.length === 1 ? "" : "s"}` : "";
+    $(".rec__vista").hidden = !ts.length;
+    $("#recLista").innerHTML = !ts.length
+      ? `<p class="empty"><i data-lucide="bell-off"></i>No hay turnos ${rec.dia ? "para mañana" : "por delante hoy"} (${U.fechaLarga(fecha)}).</p>`
+      : ts.map((t) => {
+        const ok = recEnviado(m, t);
+        return `<div class="rec__item ${ok ? "is-enviado" : ""}">
+          <span class="rec__hora">${t.hora}</span>
+          <span class="rec__info"><strong>${U.esc(t.cliente_nombre)}</strong>
+            <small>${U.esc(t.servicio?.nombre || "")} · ${U.esc(t.barbero?.nombre || "")} · ${ESTADOS[t.estado].txt}</small></span>
+          <span class="rec__acc">
+            ${ok ? '<span class="rec__ok"><i data-lucide="check-check"></i>Enviado</span>' : ""}
+            <a class="btn ${ok ? "btn--ghost" : "btn--gold"} btn--sm" href="${waCliente(t)}" target="_blank" rel="noopener" data-rec="${t.id}"
+              aria-label="${ok ? "Reenviar" : "Enviar"} recordatorio a ${U.esc(t.cliente_nombre)}"><i data-lucide="message-circle"></i>${ok ? "Reenviar" : "Enviar"}</a>
+          </span></div>`;
+      }).join("");
+    if (ts.length) $("#recEjemplo").textContent = mensajeRecordatorio(ts.find((t) => !recEnviado(m, t)) || ts[0]);
+    U.icons();
+  }
+  $("#btnRecordatorios").addEventListener("click", () => {
+    rec.dia = 1;
+    $("#modalRecordatorios").showModal();
+    cargarRec();
+  });
+  $$("[data-rec-dia]").forEach((b) => b.addEventListener("click", () => { rec.dia = Number(b.dataset.recDia); cargarRec(); }));
+  $("#recLista").addEventListener("click", (e) => {
+    const a = e.target.closest("[data-rec]"); if (!a) return;
+    const t = rec.turnos.find((x) => x.id === a.dataset.rec);
+    if (t) { recMarcar(t); setTimeout(renderRec, 400); } // después de que se abra WhatsApp
+  });
+
   $$("[data-close]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
   $$("dialog").forEach((d) => d.addEventListener("click", (e) => { if (e.target === d) d.close(); }));
 

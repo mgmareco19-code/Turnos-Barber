@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Superadmin · Locales</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script>(function(){var t;try{t=localStorage.getItem("tema")}catch(e){}if(t!=="light"&&t!=="dark")t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t})();</script>
+</head>
+<body class="page-admin page-super">
+
+  <!-- LOGIN -->
+  <section class="login" id="vistaLogin" hidden>
+    <form class="login__card" id="formLogin" novalidate>
+      <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="Cambiar tema"><i data-lucide="sun" class="ico-sun"></i><i data-lucide="moon" class="ico-moon"></i></button>
+      <span class="logo"><i data-lucide="scissors"></i><span class="js-plataforma"></span></span>
+      <h1>Superadmin</h1>
+      <label class="field" id="campoEmail">
+        <span>Email</span>
+        <input name="email" type="email" autocomplete="username">
+      </label>
+      <label class="field">
+        <span>Contraseña</span>
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <p class="note" id="loginHint" hidden></p>
+      <p class="form__error" id="loginError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit"><i data-lucide="log-in"></i>INGRESAR</button>
+    </form>
+  </section>
+
+  <!-- PANEL -->
+  <div id="vistaPanel" hidden>
+    <header class="topbar">
+      <div class="container container--wide topbar__inner">
+        <span class="logo"><i data-lucide="scissors"></i><span class="js-plataforma"></span></span>
+        <div class="topbar__right">
+          <span class="badge badge--warn" id="modoBadge">Superadmin</span>
+          <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="Cambiar tema"><i data-lucide="sun" class="ico-sun"></i><i data-lucide="moon" class="ico-moon"></i></button>
+          <button class="btn btn--ghost btn--sm" id="btnSalir"><i data-lucide="log-out"></i><span class="hide-sm">Salir</span></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container container--wide admin">
+      <div class="toolbar">
+        <div class="segmented" role="tablist" aria-label="Sección">
+          <button role="tab" data-tab="locales" aria-selected="true"><i data-lucide="store"></i>Locales</button>
+          <button role="tab" data-tab="ingresos" aria-selected="false"><i data-lucide="wallet"></i>Ingresos</button>
+        </div>
+        <div class="toolbar__right" id="barraLocales">
+          <input type="search" id="buscar" class="select buscar" placeholder="Buscar local o email…" aria-label="Buscar">
+          <select id="filtro" class="select" aria-label="Filtrar por estado">
+            <option value="">Todos</option>
+            <option value="activo">Activos</option>
+            <option value="por_vencer">Por vencer</option>
+            <option value="vencidos">Vencidos</option>
+            <option value="suspendido">Suspendidos</option>
+          </select>
+          <button class="btn btn--gold btn--sm" id="btnNuevo"><i data-lucide="plus"></i>Nuevo local</button>
+        </div>
+      </div>
+
+      <div id="vistaLocales">
+        <section class="kpis" id="kpis" aria-label="Resumen"></section>
+        <section class="tabla-wrap" id="lista" aria-label="Locales"></section>
+      </div>
+
+      <div id="vistaIngresos" hidden>
+        <section class="kpis" id="kpisIng" aria-label="Resumen de ingresos"></section>
+        <section class="ing-card">
+          <div class="ing-card__head">
+            <h2>Cobrado por mes</h2>
+            <small class="muted">Últimos 12 meses · tocá un mes para ver sus pagos</small>
+          </div>
+          <div class="barras" id="grafico"></div>
+        </section>
+        <div class="ing-grid">
+          <section class="ing-card">
+            <div class="ing-card__head"><h2>Por cobrar este mes</h2><small class="muted" id="porCobrarSub"></small></div>
+            <div id="porCobrar"></div>
+          </section>
+          <section class="ing-card">
+            <div class="ing-card__head">
+              <h2 id="pagosTitulo">Pagos registrados</h2>
+              <button class="btn btn--ghost btn--sm" id="btnVerTodos" hidden><i data-lucide="x"></i>Ver todos</button>
+            </div>
+            <div id="pagos"></div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ALTA / EDICIÓN DE LOCAL -->
+  <dialog class="modal" id="modalLocal">
+    <form id="formLocal" class="form" novalidate>
+      <div class="modal__head">
+        <h2 id="localTitulo">Nuevo local</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+      <input type="hidden" name="id">
+      <label class="field"><span>Nombre del local</span><input name="nombre" required minlength="2" maxlength="60" autocomplete="off" placeholder="Ej: Barbería El Patrón"></label>
+      <label class="field">
+        <span>Link de reservas</span>
+        <div class="slug"><span class="slug__pre" id="slugPre"></span><input name="slug" required maxlength="40" autocomplete="off" spellcheck="false" placeholder="el-patron"></div>
+        <small class="slug__msg" id="slugMsg"></small>
+      </label>
+      <label class="field"><span>Email del dueño <small>(con este entra al panel)</small></span><input name="dueno" type="email" required autocomplete="off" placeholder="dueno@barberia.com"></label>
+      <div class="grid-2">
+        <label class="field"><span>Abono vence el</span><input name="vence_el" type="date"></label>
+        <label class="field"><span>Abono mensual (Gs.)</span><input name="precio" type="number" min="0" step="1000" required inputmode="numeric"></label>
+      </div>
+      <div class="grid-2">
+        <label class="field" id="campoActivo"><span>Estado</span>
+          <span class="switch-row"><label class="switch"><input type="checkbox" name="activo" aria-label="Local activo"><span></span></label><span id="activoTxt"></span></span>
+        </label>
+      </div>
+      <p class="note" id="slugAviso" hidden><i data-lucide="alert-triangle"></i> Si cambiás el link, el anterior deja de funcionar: avisale al dueño.</p>
+      <p class="form__error" id="localError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit" id="btnGuardarLocal"><i data-lucide="store"></i>CREAR LOCAL</button>
+    </form>
+  </dialog>
+
+  <!-- REGISTRAR PAGO DEL ABONO -->
+  <dialog class="modal" id="modalPago">
+    <form id="formPago" class="form" novalidate>
+      <div class="modal__head">
+        <h2>Registrar pago</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+      <input type="hidden" name="id">
+      <p class="muted" id="pagoLocal"></p>
+      <div class="grid-2">
+        <label class="field"><span>Meses que paga</span>
+          <select name="meses" class="select">
+            <option value="1">1 mes</option><option value="2">2 meses</option><option value="3">3 meses</option>
+            <option value="6">6 meses</option><option value="12">12 meses</option>
+          </select>
+        </label>
+        <label class="field"><span>Fecha del pago</span><input name="fecha" type="date" required></label>
+      </div>
+      <label class="field"><span>Monto cobrado (Gs.)</span><input name="monto" type="number" min="0" step="1000" required inputmode="numeric"></label>
+      <p class="note" id="pagoResumen"></p>
+      <p class="form__error" id="pagoError" role="alert" hidden></p>
+      <button class="btn btn--gold btn--block" type="submit" id="btnGuardarPago"><i data-lucide="check"></i>REGISTRAR PAGO</button>
+    </form>
+  </dialog>
+
+  <!-- ACCESOS DEL LOCAL: link de reservas + acceso del staff (al crear o desde la lista) -->
+  <dialog class="modal" id="modalCreado">
+    <div class="modal__head">
+      <h2 id="creadoTitulo">Local creado</h2>
+      <button class="icon-btn" data-close aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <p class="muted" id="creadoSub">Mandale estos datos al dueño. Desde su panel carga barberos, servicios, horario y WhatsApp.</p>
+
+    <div class="acceso">
+      <h3 class="acceso__tit"><i data-lucide="calendar-days"></i>Link de reservas <small>para los clientes del local</small></h3>
+      <div class="acceso__fila"><code id="accReserva"></code>
+        <button class="icon-btn" data-copiar="accReserva" aria-label="Copiar link de reservas"><i data-lucide="copy"></i></button>
+        <a class="icon-btn" id="creadoAbrir" target="_blank" rel="noopener" aria-label="Abrir página de reservas"><i data-lucide="external-link"></i></a>
+      </div>
+    </div>
+
+    <div class="acceso">
+      <h3 class="acceso__tit"><i data-lucide="key-round"></i>Acceso del staff <small>panel del dueño</small></h3>
+      <div class="acceso__fila"><span class="acceso__k">Panel</span><code id="accPanel"></code>
+        <button class="icon-btn" data-copiar="accPanel" aria-label="Copiar link del panel"><i data-lucide="copy"></i></button>
+        <a class="icon-btn" id="accPanelAbrir" target="_blank" rel="noopener" aria-label="Abrir panel"><i data-lucide="external-link"></i></a>
+      </div>
+      <div class="acceso__fila"><span class="acceso__k">Usuario</span><code id="accUsuario"></code>
+        <button class="icon-btn" data-copiar="accUsuario" aria-label="Copiar usuario"><i data-lucide="copy"></i></button>
+      </div>
+      <div class="acceso__fila"><span class="acceso__k">Contraseña</span><code id="accClave"></code>
+        <button class="icon-btn" data-copiar="accClave" id="accClaveCopiar" aria-label="Copiar contraseña"><i data-lucide="copy"></i></button>
+        <button class="btn btn--ghost btn--sm" id="accClaveNueva" hidden title="Genera una contraseña nueva y cierra las sesiones abiertas del dueño"><i data-lucide="refresh-cw"></i>Generar nueva</button>
+      </div>
+    </div>
+
+    <details class="acceso__msg">
+      <summary>Ver mensaje para WhatsApp</summary>
+      <pre class="mensaje" id="creadoMsg"></pre>
+    </details>
+    <div class="modal__actions">
+      <button class="btn btn--gold btn--sm" id="btnCopiarMsg"><i data-lucide="copy"></i>Copiar mensaje completo</button>
+      <a class="btn btn--ghost btn--sm" id="btnWaMsg" target="_blank" rel="noopener"><i data-lucide="message-circle"></i>Enviar por WhatsApp</a>
+    </div>
+  </dialog>
+
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/db-oracle.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/superadmin.js"></script>
+</body>
+</html>
